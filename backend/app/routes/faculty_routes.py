@@ -10,6 +10,7 @@ from app.models.student import Student
 from app.models.user import User
 from app.models.marks import Marks
 from app.models.exam import Exam
+from app.models.mentorship import Mentorship
 
 faculty_bp = Blueprint('faculty', __name__, url_prefix='/api/faculty')
 
@@ -127,6 +128,44 @@ def delete_exam(exam_id):
         db.session.delete(exam)
         db.session.commit()
         return jsonify({"message": "Exam deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+@faculty_bp.route('/mentorship/<int:subject_id>', methods=['GET'])
+def get_subject_mentorship(subject_id):
+    try:
+        records = Mentorship.query.filter_by(subject_id=subject_id).all()
+        return jsonify([r.to_dict() for r in records]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@faculty_bp.route('/mentorship', methods=['POST'])
+def save_mentorship():
+    data = request.get_json()
+    try:
+        # Get faculty ID from user ID
+        faculty = Faculty.query.filter_by(user_id=data['user_id']).first()
+        if not faculty: return jsonify({"error": "Faculty not found"}), 404
+        
+        record = Mentorship.query.filter_by(
+            student_id=data['student_id'],
+            subject_id=data['subject_id']
+        ).first()
+
+        if not record:
+            record = Mentorship(
+                student_id=data['student_id'],
+                subject_id=data['subject_id'],
+                faculty_id=faculty.id
+            )
+            db.session.add(record)
+
+        record.performance_rating = data.get('performance_rating', record.performance_rating)
+        record.remarks = data.get('remarks', record.remarks)
+        record.feedback = data.get('feedback', record.feedback)
+        
+        db.session.commit()
+        return jsonify(record.to_dict()), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500

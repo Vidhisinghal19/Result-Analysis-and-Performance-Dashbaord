@@ -156,7 +156,7 @@ const AdminDashboard = () => {
             fetchStudentsData(1); fetchFacultyData(1); fetchUsersData(1); fetchSubjectsData(1); fetchAllFaculty(); fetchBatches(); fetchSemesters();
             fetchCoursesListData(1); fetchBatchesListData(1); fetchAllCourses();
         } catch (err) { console.error("Dashboard fetch error:", err); }
-    }, [fetchStudentsData, fetchFacultyData, fetchUsersData, fetchSubjectsData, fetchAllFaculty]);
+    }, [fetchStudentsData, fetchFacultyData, fetchUsersData, fetchSubjectsData, fetchAllFaculty, fetchBatches, fetchSemesters, fetchCoursesListData, fetchBatchesListData, fetchAllCourses]);
 
     useEffect(() => {
         const userData = localStorage.getItem("user");

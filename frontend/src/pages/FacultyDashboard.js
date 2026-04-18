@@ -14,11 +14,10 @@ const FacultyDashboard = () => {
     const [user, setUser] = useState(null);
     const [activeTab, setActiveTab] = useState("home");
     const [subjects, setSubjects] = useState([]);
-    const [loading, setLoading] = useState(true);
 
     // Sidebar & Context State
     const [selectedContext, setSelectedContext] = useState(null);
-    const [expandedPaths, setExpandedPaths] = useState([]); 
+    const [expandedPaths, setExpandedPaths] = useState([]);
 
     // Assessment Data
     const [subjectExams, setSubjectExams] = useState([]);
@@ -29,20 +28,18 @@ const FacultyDashboard = () => {
 
     // Student Tracking Specific
     const [selectedStudentForTrend, setSelectedStudentForTrend] = useState(null);
+    const [subjectMentorship, setSubjectMentorship] = useState({});
 
     // Modals & UI
     const [showExamForm, setShowExamForm] = useState(false);
     const [examForm, setExamForm] = useState({ name: "", type: "CIE", max_marks: 100, exam_date: new Date().toISOString().split('T')[0] });
-    const [uploadLoading, setUploadLoading] = useState(false);
     const [uploadMessage, setUploadMessage] = useState("");
 
     const fetchData = useCallback(async (userId) => {
-        setLoading(true);
         try {
             const res = await axios.get(`${API_BASE}/api/faculty/my-subjects/${userId}`);
             setSubjects(Array.isArray(res.data) ? res.data : []);
         } catch (err) { console.error(err); }
-        finally { setLoading(false); }
     }, []);
 
     const fetchExams = useCallback(async (subjectId) => {
@@ -57,9 +54,10 @@ const FacultyDashboard = () => {
     const fetchTracker = useCallback(async (subjectId) => {
         setDetailsLoading(true);
         try {
-            const [studentsRes, marksRes] = await Promise.all([
+            const [studentsRes, marksRes, mentorRes] = await Promise.all([
                 axios.get(`${API_BASE}/api/faculty/subject-students/${subjectId}`),
-                axios.get(`${API_BASE}/api/faculty/subject-marks/${subjectId}`)
+                axios.get(`${API_BASE}/api/faculty/subject-marks/${subjectId}`),
+                axios.get(`${API_BASE}/api/faculty/mentorship/${subjectId}`)
             ]);
             setContextStudents(studentsRes.data);
             const marksMap = {};
@@ -68,9 +66,26 @@ const FacultyDashboard = () => {
                 marksMap[m.student_id][m.exam_name] = m.marks_obtained;
             });
             setContextMarks(marksMap);
+            
+            const mentorMap = {};
+            mentorRes.data.forEach(m => { mentorMap[m.student_id] = m; });
+            setSubjectMentorship(mentorMap);
         } catch (err) { console.error(err); }
         finally { setDetailsLoading(false); }
     }, []);
+
+    const handleSaveMentorship = async (studentId, field, value) => {
+        try {
+            const payload = {
+                user_id: user.id,
+                student_id: studentId,
+                subject_id: selectedContext.id,
+                [field]: value
+            };
+            const res = await axios.post(`${API_BASE}/api/faculty/mentorship`, payload);
+            setSubjectMentorship(prev => ({ ...prev, [studentId]: res.data }));
+        } catch (err) { console.error("Mentorship save error:", err); }
+    };
 
     useEffect(() => {
         const userData = localStorage.getItem("user");
@@ -129,7 +144,6 @@ const FacultyDashboard = () => {
 
     const handleMarksUpload = async (file) => {
         if (!selectedExamId) return;
-        setUploadLoading(true);
         try {
             const formData = new FormData();
             formData.append("file", file);
@@ -138,12 +152,12 @@ const FacultyDashboard = () => {
             setUploadMessage(res.data.message);
             fetchTracker(selectedContext.id);
         } catch (err) { setUploadMessage("Upload Error"); }
-        finally { setUploadLoading(false); setTimeout(() => setUploadMessage(""), 5000); }
+        finally { setTimeout(() => setUploadMessage(""), 5000); }
     };
 
     const analyticalData = useMemo(() => {
         if (!selectedContext || subjectExams.length === 0 || contextStudents.length === 0) return null;
-        
+
         const examStats = subjectExams.map(ex => {
             const scores = contextStudents.map(s => contextMarks[s.id]?.[ex.name]).filter(v => v !== undefined);
             const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
@@ -156,7 +170,7 @@ const FacultyDashboard = () => {
             const marks = contextMarks[student.id] || {};
             let obt = 0; let totalMax = 0;
             const performanceTrend = subjectExams.map(ex => ({ name: ex.name, score: marks[ex.name] || 0, max: ex.max_marks }));
-            
+
             subjectExams.forEach(ex => {
                 const m = marks[ex.name];
                 if (m !== undefined) { obt += m; totalMax += ex.max_marks; }
@@ -174,13 +188,13 @@ const FacultyDashboard = () => {
         const brackets = [getBracket(0, 20), getBracket(21, 40), getBracket(41, 60), getBracket(61, 80), getBracket(81, 100)];
         function getBracket(min, max) { return { range: `${min}-${max}`, count: studentOverall.filter(s => s.percentage >= min && s.percentage <= max).length }; }
 
-        const sorted = [...studentOverall].sort((a,b) => b.percentage - a.percentage);
-        const overallAvg = (studentOverall.reduce((a,b)=>a+b.percentage,0)/studentOverall.length).toFixed(1);
+        const sorted = [...studentOverall].sort((a, b) => b.percentage - a.percentage);
+        const overallAvg = (studentOverall.reduce((a, b) => a + b.percentage, 0) / studentOverall.length).toFixed(1);
 
-        return { 
+        return {
             examStats, overallAvg, passFailData, distribution: brackets,
             top5: sorted.slice(0, 5),
-            weak: sorted.filter(s => s.percentage < 40).sort((a,b)=>a.percentage - b.percentage),
+            weak: sorted.filter(s => s.percentage < 40).sort((a, b) => a.percentage - b.percentage),
             studentTracking: studentOverall
         };
     }, [selectedContext, subjectExams, contextStudents, contextMarks]);
@@ -282,7 +296,7 @@ const FacultyDashboard = () => {
                                                     const m = marks[ex.name]; if (m !== undefined) { obt += m; max += ex.max_marks; }
                                                     return <td key={ex.id}>{m ?? "-"}</td>
                                                 })}
-                                                <td style={{ fontWeight: "700", color: "var(--accent-primary)" }}>{max > 0 ? ((obt/max)*100).toFixed(1) + "%" : "-"}</td>
+                                                <td style={{ fontWeight: "700", color: "var(--accent-primary)" }}>{max > 0 ? ((obt / max) * 100).toFixed(1) + "%" : "-"}</td>
                                             </tr>
                                         );
                                     })}</tbody>
@@ -295,14 +309,14 @@ const FacultyDashboard = () => {
                 {/* STUDENT-WISE PROGRESS TRACKING */}
                 {activeTab === "tracking" && selectedContext && analyticalData && (
                     <section className="tracking-view" style={{ animation: "slideUp 0.4s ease" }}>
-                        
+
                         {!selectedStudentForTrend ? (
                             <div className="glass-card" style={{ padding: "2rem" }}>
                                 <div style={{ marginBottom: "2rem" }}>
                                     <h3>Individual Student Progress Monitoring</h3>
                                     <p style={{ color: "var(--text-dim)", fontSize: "0.9rem" }}>Select a student from the matrix to view their unique performance trajectory.</p>
                                 </div>
-                                
+
                                 <div className="p-table-wrapper">
                                     <table className="p-table">
                                         <thead>
@@ -316,12 +330,12 @@ const FacultyDashboard = () => {
                                         <tbody>
                                             {analyticalData.studentTracking.map(student => (
                                                 <tr key={student.id} hover="true">
-                                                    <td><strong>{student.name}</strong><br/><small className="text-dim">{student.enrollment}</small></td>
+                                                    <td><strong>{student.name}</strong><br /><small className="text-dim">{student.enrollment}</small></td>
                                                     {student.trend.map((t, i) => <td key={i}>{t.score}</td>)}
                                                     <td style={{ fontWeight: "700", color: "var(--accent-primary)" }}>{student.percentage.toFixed(1)}%</td>
                                                     <td style={{ textAlign: 'center' }}>
-                                                        <button 
-                                                            className="btn-add" 
+                                                        <button
+                                                            className="btn-add"
                                                             style={{ padding: "6px 12px", fontSize: "0.75rem" }}
                                                             onClick={() => setSelectedStudentForTrend(student)}
                                                         >
@@ -361,16 +375,16 @@ const FacultyDashboard = () => {
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                                     <XAxis dataKey="name" axisLine={false} tickLine={false} />
                                                     <YAxis domain={[0, 100]} axisLine={false} tickLine={false} unit="%" />
-                                                    <Tooltip 
+                                                    <Tooltip
                                                         contentStyle={{ borderRadius: "15px", border: "none", boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}
                                                         cursor={{ stroke: 'var(--accent-primary)', strokeWidth: 2, strokeDasharray: '5 5' }}
                                                     />
-                                                    <Line 
-                                                        type="monotone" 
-                                                        dataKey="score" 
-                                                        stroke="var(--accent-primary)" 
-                                                        strokeWidth={5} 
-                                                        dot={{ r: 8, fill: "var(--accent-primary)", strokeWidth: 4, stroke: "#fff" }} 
+                                                    <Line
+                                                        type="monotone"
+                                                        dataKey="score"
+                                                        stroke="var(--accent-primary)"
+                                                        strokeWidth={5}
+                                                        dot={{ r: 8, fill: "var(--accent-primary)", strokeWidth: 4, stroke: "#fff" }}
                                                         activeDot={{ r: 10, strokeWidth: 0 }}
                                                         animationDuration={1500}
                                                     />
@@ -379,18 +393,56 @@ const FacultyDashboard = () => {
                                         </div>
 
                                         <div className="stats-pane">
-                                            <h4 style={{ marginTop: 0 }}>Score Breakdown</h4>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                                {selectedStudentForTrend.trend.map((t, i) => (
-                                                    <div key={i} className="glass-card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t.name}</span>
-                                                        <span style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>{t.score}/{t.max}</span>
+                                            <h4 style={{ marginTop: 0 }}>Performance Feedback</h4>
+                                            
+                                            <div className="mentorship-section" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                                <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                                    <h5 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        🧠 Personal Mentoring
+                                                    </h5>
+                                                    
+                                                    <div style={{ marginBottom: '1.2rem' }}>
+                                                        <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>PERFORMANCE RATING</label>
+                                                        <select 
+                                                            value={subjectMentorship[selectedStudentForTrend.id]?.performance_rating || ""} 
+                                                            onChange={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'performance_rating', e.target.value)}
+                                                            style={{ width: '100%', padding: '10px', borderRadius: '10px', background: 'white' }}
+                                                        >
+                                                            <option value="">Select Category</option>
+                                                            <option value="Excellent">🌟 Excellent (Exceeds Expectations)</option>
+                                                            <option value="Consistent">📈 Consistent / Stable Player</option>
+                                                            <option value="Improving">⚡ Showing Significant Growth</option>
+                                                            <option value="Needs Support">⚠️ Needs Academic Support</option>
+                                                            <option value="Critical">🔴 Critical Intervention Required</option>
+                                                        </select>
                                                     </div>
-                                                ))}
-                                            </div>
-                                            <div className="glass-card" style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'var(--accent-primary)', color: 'white' }}>
-                                                <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Current Standing</p>
-                                                <h3 style={{ margin: 0, fontSize: '1.5rem' }}>{selectedStudentForTrend.percentage.toFixed(1)}%</h3>
+
+                                                    <div style={{ marginBottom: '1.2rem' }}>
+                                                        <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>CORE REMARKS</label>
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="Short feedback (e.g. Strong in logic)" 
+                                                            defaultValue={subjectMentorship[selectedStudentForTrend.id]?.remarks || ""}
+                                                            onBlur={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'remarks', e.target.value)}
+                                                            style={{ width: '100%', padding: '10px' }}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>DETAILED FEEDBACK</label>
+                                                        <textarea 
+                                                            placeholder="Write personalized guidance for the student..." 
+                                                            defaultValue={subjectMentorship[selectedStudentForTrend.id]?.feedback || ""}
+                                                            onBlur={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'feedback', e.target.value)}
+                                                            style={{ width: '100%', padding: '10px', minHeight: '100px' }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="glass-card" style={{ padding: '1.5rem', background: 'var(--accent-primary)', color: 'white' }}>
+                                                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Current Mastery Level</p>
+                                                    <h3 style={{ margin: 0, fontSize: '1.8rem' }}>{selectedStudentForTrend.percentage.toFixed(1)}%</h3>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -411,20 +463,20 @@ const FacultyDashboard = () => {
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
                             <div className="glass-card" style={{ padding: "1.5rem", height: "380px" }}>
-                                <ResponsiveContainer><BarChart data={analyticalData.examStats}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name"/><YAxis/><Tooltip/><Legend/><Bar name="Avg" dataKey="average" fill="var(--accent-primary)" radius={[4,4,0,0]}/><Bar name="High" dataKey="highest" fill="#10b981" radius={[4,4,0,0]}/><Bar name="Low" dataKey="lowest" fill="#f43f5e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer>
+                                <ResponsiveContainer><BarChart data={analyticalData.examStats}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Bar name="Avg" dataKey="average" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} /><Bar name="High" dataKey="highest" fill="#10b981" radius={[4, 4, 0, 0]} /><Bar name="Low" dataKey="lowest" fill="#f43f5e" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
                             </div>
                             <div className="glass-card" style={{ padding: "1.5rem", height: "380px" }}>
-                                <ResponsiveContainer><AreaChart data={analyticalData.examStats}><XAxis dataKey="name"/><YAxis unit="%"/><Tooltip/><Area type="monotone" name="Trend" dataKey="avgPercentage" stroke="var(--accent-primary)" strokeWidth={3} fillOpacity={0.1} fill="var(--accent-primary)"/></AreaChart></ResponsiveContainer>
+                                <ResponsiveContainer><AreaChart data={analyticalData.examStats}><XAxis dataKey="name" /><YAxis unit="%" /><Tooltip /><Area type="monotone" name="Trend" dataKey="avgPercentage" stroke="var(--accent-primary)" strokeWidth={3} fillOpacity={0.1} fill="var(--accent-primary)" /></AreaChart></ResponsiveContainer>
                             </div>
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
                             <div className="glass-card" style={{ padding: "1.5rem", height: "380px", display: "flex", flexDirection: "column", alignItems: "center" }}>
                                 <h3 style={{ width: "100%" }}>Pass vs Fail</h3>
-                                <ResponsiveContainer><PieChart><Pie data={analyticalData.passFailData} innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value">{analyticalData.passFailData.map((e, i) => <Cell key={i} fill={e.color}/>)}</Pie><Tooltip/><Legend verticalAlign="bottom"/></PieChart></ResponsiveContainer>
+                                <ResponsiveContainer><PieChart><Pie data={analyticalData.passFailData} innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value">{analyticalData.passFailData.map((e, i) => <Cell key={i} fill={e.color} />)}</Pie><Tooltip /><Legend verticalAlign="bottom" /></PieChart></ResponsiveContainer>
                             </div>
                             <div className="glass-card" style={{ padding: "1.5rem", height: "380px" }}>
                                 <h3>Score Distribution</h3>
-                                <ResponsiveContainer><BarChart data={analyticalData.distribution}><CartesianGrid strokeDasharray="3 3" vertical={false}/><XAxis dataKey="range"/><YAxis/><Tooltip/><Bar name="Students" dataKey="count" fill="#6366f1" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer>
+                                <ResponsiveContainer><BarChart data={analyticalData.distribution}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="range" /><YAxis /><Tooltip /><Bar name="Students" dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
                             </div>
                         </div>
                     </section>
@@ -437,8 +489,8 @@ const FacultyDashboard = () => {
                         {showExamForm && (
                             <form onSubmit={handleCreateExam} className="glass-card" style={{ padding: "2rem", marginBottom: "2rem", border: "1px solid var(--accent-primary)" }}>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                                    <input type="text" placeholder="Name" value={examForm.name} onChange={e => setExamForm({...examForm, name: e.target.value})} />
-                                    <input type="number" placeholder="Max" value={examForm.max_marks} onChange={e => setExamForm({...examForm, max_marks: e.target.value})} />
+                                    <input type="text" placeholder="Name" value={examForm.name} onChange={e => setExamForm({ ...examForm, name: e.target.value })} />
+                                    <input type="number" placeholder="Max" value={examForm.max_marks} onChange={e => setExamForm({ ...examForm, max_marks: e.target.value })} />
                                 </div>
                                 <div style={{ marginTop: "1rem" }}><button type="submit" className="btn-add">Save</button> <button type="button" onClick={() => setShowExamForm(false)}>Cancel</button></div>
                             </form>
@@ -451,15 +503,75 @@ const FacultyDashboard = () => {
                 )}
 
                 {activeTab === "upload" && selectedContext && (
-                    <section className="glass-card" style={{ maxWidth: "500px", margin: "2rem auto", padding: "3rem", textAlign: "center" }}>
-                        <h2>Upload Grades</h2>
-                        <select value={selectedExamId} onChange={e => setSelectedExamId(e.target.value)} style={{ width: "100%", padding: "1rem", margin: "1.5rem 0" }}>
-                            <option value="">Select Exam</option>
-                            {subjectExams.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-                        </select>
-                        <input type="file" id="up-f" hidden onChange={e => handleMarksUpload(e.target.files[0])} disabled={!selectedExamId} />
-                        <label htmlFor="up-f" className={`btn-add ${!selectedExamId ? 'disabled' : ''}`}>Select CSV File</label>
-                        {uploadMessage && <p style={{ color: "#10b981", marginTop: "1rem" }}>{uploadMessage}</p>}
+                    <section className="grade-entry-view" style={{ animation: "slideUp 0.4s ease" }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
+                            {/* UPLOAD FORM */}
+                            <div className="glass-card" style={{ padding: "3rem", textAlign: "center", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📄</div>
+                                <h2>Submit Assessment Record</h2>
+                                <p style={{ color: 'var(--text-dim)', marginBottom: '2rem' }}>Upload the final grades for the selected assessment in CSV format.</p>
+                                
+                                <div style={{ maxWidth: '400px', margin: '0 auto', width: '100%' }}>
+                                    <label style={{ display: 'block', textAlign: 'left', fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px' }}>TARGET ASSESSMENT</label>
+                                    <select value={selectedExamId} onChange={e => setSelectedExamId(e.target.value)} style={{ width: "100%", padding: "1rem", marginBottom: "2rem", borderRadius: '12px' }}>
+                                        <option value="">Choose Exam...</option>
+                                        {subjectExams.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+                                    </select>
+                                    
+                                    <input type="file" id="up-f" hidden onChange={e => handleMarksUpload(e.target.files[0])} disabled={!selectedExamId} />
+                                    <label htmlFor="up-f" className={`btn-add ${!selectedExamId ? 'disabled' : ''}`} style={{ width: '100%', padding: '1.2rem', display: 'block', textAlign: 'center' }}>
+                                        Select CSV Record
+                                    </label>
+                                    {uploadMessage && <div className="glass-card" style={{ marginTop: "1.5rem", padding: "1rem", background: 'rgba(16, 185, 129, 0.1)', color: "#10b981", border: '1px solid #10b981' }}>{uploadMessage}</div>}
+                                </div>
+                            </div>
+
+                            {/* INSTRUCTIONS */}
+                            <div className="glass-card" style={{ padding: "2rem" }}>
+                                <h3 style={{ marginTop: 0 }}>📋 CSV Guidelines</h3>
+                                <p style={{ fontSize: '0.9rem', color: 'var(--text-dim)', lineHeight: '1.6' }}>
+                                    Follow these steps to ensure your grade record is processed without errors.
+                                </p>
+                                
+                                <div className="guideline-step" style={{ marginTop: '1.5rem' }}>
+                                    <h5 style={{ margin: '0 0 5px 0', fontSize: '0.85rem' }}>1. Required Columns</h5>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Your CSV must include these two exact headers:</p>
+                                    <ul style={{ fontSize: '0.8rem', paddingLeft: '1.2rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                        <li>enrollment_number</li>
+                                        <li>marks_obtained</li>
+                                    </ul>
+                                </div>
+
+                                <div className="guideline-step" style={{ marginTop: '1.5rem' }}>
+                                    <h5 style={{ margin: '0 0 5px 0', fontSize: '0.85rem' }}>2. Data Format</h5>
+                                    <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse', marginTop: '5px' }}>
+                                        <thead>
+                                            <tr style={{ background: 'rgba(0,0,0,0.05)' }}>
+                                                <th style={{ padding: '8px', border: '1px solid #ddd' }}>enrollment_number</th>
+                                                <th style={{ padding: '8px', border: '1px solid #ddd' }}>marks_obtained</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td style={{ padding: '8px', border: '1px solid #ddd' }}>ENR2024001</td>
+                                                <td style={{ padding: '8px', border: '1px solid #ddd' }}>85</td>
+                                            </tr>
+                                            <tr>
+                                                <td style={{ padding: '8px', border: '1px solid #ddd' }}>ENR2024002</td>
+                                                <td style={{ padding: '8px', border: '1px solid #ddd' }}>92</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="guideline-step" style={{ marginTop: '1.5rem' }}>
+                                    <h5 style={{ margin: '0 0 5px 0', fontSize: '0.85rem' }}>3. Verification</h5>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                                        Double-check that the enrollment numbers exist in the system before uploading. Duplicate entries for the same student will overwrite previous scores.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </section>
                 )}
             </main>
