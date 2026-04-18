@@ -266,14 +266,60 @@ const FacultyDashboard = () => {
                     </div>
                 </header>
 
-                {/* OVERVIEW / WELCOME */}
+                {/* ENHANCED OVERVIEW / COMMAND CENTER */}
                 {activeTab === "home" && !selectedContext && (
-                    <section className="welcome-view glass-card" style={{ padding: "4rem", textAlign: "center" }}>
-                        <div style={{ fontSize: "4rem", marginBottom: "1.5rem" }}>🏫</div>
-                        <h2>Departmental Hub</h2>
-                        <p style={{ color: "var(--text-dim)", maxWidth: "600px", margin: "0 auto 2rem" }}>
-                            Welcome to the Faculty portal. Drill down into your teaching assignments in the sidebar to begin tracking excellence.
-                        </p>
+                    <section className="command-center-view" style={{ animation: "slideUp 0.4s ease" }}>
+                        {/* PORTFOLIO STATS */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                            <div className="glass-card stat-card-p" style={{ borderLeft: '4px solid var(--accent-primary)' }}>
+                                <span className="stat-p-label">My Assignments</span>
+                                <span className="stat-p-value">{subjects.length} Subjects</span>
+                            </div>
+                            <div className="glass-card stat-card-p" style={{ borderLeft: '4px solid #10b981' }}>
+                                <span className="stat-p-label">Courses Covered</span>
+                                <span className="stat-p-value">{[...new Set(subjects.map(s => s.course))].length} Programs</span>
+                            </div>
+                            <div className="glass-card stat-card-p" style={{ borderLeft: '4px solid #f59e0b' }}>
+                                <span className="stat-p-label">Student Reach</span>
+                                <span className="stat-p-value">{subjects.reduce((a, b) => a + (b.total_students || 0), 0)} Total</span>
+                            </div>
+                        </div>
+
+                        {/* PORTFOLIO GRID */}
+                        <div style={{ marginBottom: '2rem' }}>
+                            <h2 style={{ marginBottom: '0.5rem' }}>My Teaching Portfolio</h2>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>A comprehensive overview of your current academic assignments and student batches.</p>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                            {subjects.map(sub => (
+                                <div key={sub.id} className="glass-card subject-card" style={{ padding: '1.5rem', transition: 'transform 0.2s' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                        <div className="subject-icon" style={{ padding: '10px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', fontSize: '1.5rem' }}>📚</div>
+                                        <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', fontSize: '0.7rem', fontWeight: 800 }}>{sub.code}</span>
+                                    </div>
+                                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{sub.name}</h3>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span>🏢 <strong>Program:</strong> {sub.course}</span>
+                                        <span>📅 <strong>Batch:</strong> {sub.batch}</span>
+                                        <span>🎓 <strong>Semester:</strong> {sub.semester}</span>
+                                    </div>
+                                    <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1.25rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{sub.total_students} Students</span>
+                                        </div>
+                                        <button 
+                                            className="btn-add" 
+                                            style={{ padding: '8px 16px', fontSize: '0.8rem', borderRadius: '8px' }}
+                                            onClick={() => handleSelectSubject(sub)}
+                                        >
+                                            View Details
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </section>
                 )}
 
