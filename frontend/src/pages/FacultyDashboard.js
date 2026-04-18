@@ -71,7 +71,7 @@ const FacultyDashboard = () => {
                 marksMap[m.student_id][m.exam_name] = m.marks_obtained;
             });
             setContextMarks(marksMap);
-            
+
             const mentorMap = {};
             mentorRes.data.forEach(m => { mentorMap[m.student_id] = m; });
             setSubjectMentorship(mentorMap);
@@ -282,13 +282,13 @@ const FacultyDashboard = () => {
                             {user.name[0].toUpperCase()}
                         </div>
                         <div style={{ height: '24px', width: '1px', background: 'rgba(0,0,0,0.1)' }}></div>
-                        <button 
-                            onClick={logout} 
-                            style={{ 
-                                background: 'transparent', 
-                                border: 'none', 
-                                cursor: 'pointer', 
-                                fontSize: '0.8rem', 
+                        <button
+                            onClick={logout}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '0.8rem',
                                 fontWeight: 800,
                                 padding: '4px 8px',
                                 display: 'flex',
@@ -346,8 +346,8 @@ const FacultyDashboard = () => {
                                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
                                             <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{sub.total_students} Students</span>
                                         </div>
-                                        <button 
-                                            className="btn-add" 
+                                        <button
+                                            className="btn-add"
                                             style={{ padding: '8px 16px', fontSize: '0.8rem', borderRadius: '8px' }}
                                             onClick={() => handleSelectSubject(sub)}
                                         >
@@ -477,17 +477,17 @@ const FacultyDashboard = () => {
 
                                         <div className="stats-pane">
                                             <h4 style={{ marginTop: 0 }}>Performance Feedback</h4>
-                                            
+
                                             <div className="mentorship-section" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                                 <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
                                                     <h5 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                         🧠 Personal Mentoring
                                                     </h5>
-                                                    
+
                                                     <div style={{ marginBottom: '1.2rem' }}>
                                                         <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>PERFORMANCE RATING</label>
-                                                        <select 
-                                                            value={subjectMentorship[selectedStudentForTrend.id]?.performance_rating || ""} 
+                                                        <select
+                                                            value={subjectMentorship[selectedStudentForTrend.id]?.performance_rating || ""}
                                                             onChange={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'performance_rating', e.target.value)}
                                                             style={{ width: '100%', padding: '10px', borderRadius: '10px', background: 'white' }}
                                                         >
@@ -502,9 +502,9 @@ const FacultyDashboard = () => {
 
                                                     <div style={{ marginBottom: '1.2rem' }}>
                                                         <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>CORE REMARKS</label>
-                                                        <input 
-                                                            type="text" 
-                                                            placeholder="Short feedback (e.g. Strong in logic)" 
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Short feedback (e.g. Strong in logic)"
                                                             defaultValue={subjectMentorship[selectedStudentForTrend.id]?.remarks || ""}
                                                             onBlur={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'remarks', e.target.value)}
                                                             style={{ width: '100%', padding: '10px' }}
@@ -513,8 +513,8 @@ const FacultyDashboard = () => {
 
                                                     <div>
                                                         <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>DETAILED FEEDBACK</label>
-                                                        <textarea 
-                                                            placeholder="Write personalized guidance for the student..." 
+                                                        <textarea
+                                                            placeholder="Write personalized guidance for the student..."
                                                             defaultValue={subjectMentorship[selectedStudentForTrend.id]?.feedback || ""}
                                                             onBlur={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'feedback', e.target.value)}
                                                             style={{ width: '100%', padding: '10px', minHeight: '100px' }}
@@ -565,23 +565,165 @@ const FacultyDashboard = () => {
                     </section>
                 )}
 
-                {/* OTHER TABS (RESTORED) */}
+                {/* 5️⃣ DYNAMIC EXAM SYSTEM - PREMIUM SETUP */}
                 {activeTab === "exams" && selectedContext && (
-                    <section className="glass-card" style={{ padding: "2rem" }}>
-                        <button className="btn-add" onClick={() => setShowExamForm(true)} style={{ marginBottom: "1.5rem" }}>+ Define New Exam</button>
+                    <section className="exams-setup-view" style={{ animation: "slideUp 0.4s ease" }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', borderBottom: '1px solid var(--border-card)', paddingBottom: '1.5rem' }}>
+                            <div>
+                                <h1 style={{ margin: 0, fontSize: '1.75rem' }}>Assessment Orchestration</h1>
+                                <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '5px' }}>
+                                    Orchestrating evaluation modules for <strong>{selectedContext.name}</strong> • {selectedContext.batch} • Sem {selectedContext.semester}
+                                </p>
+                            </div>
+                            {!showExamForm && (
+                                <button className="btn-add" onClick={() => setShowExamForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>+</span> Define New Assessment
+                                </button>
+                            )}
+                        </div>
+
                         {showExamForm && (
-                            <form onSubmit={handleCreateExam} className="glass-card" style={{ padding: "2rem", marginBottom: "2rem", border: "1px solid var(--accent-primary)" }}>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                                    <input type="text" placeholder="Name" value={examForm.name} onChange={e => setExamForm({ ...examForm, name: e.target.value })} />
-                                    <input type="number" placeholder="Max" value={examForm.max_marks} onChange={e => setExamForm({ ...examForm, max_marks: e.target.value })} />
+                            <div className="glass-card" style={{ padding: "3rem", marginBottom: "3rem", border: "1px solid var(--accent-primary)", background: 'rgba(59, 130, 246, 0.03)', animation: 'slideUp 0.3s ease' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '2.5rem' }}>
+                                    <div className="profile-avatar" style={{ width: '50px', height: '50px', background: 'var(--accent-primary)', color: 'white', borderRadius: '12px', fontSize: '1.5rem' }}>✏️</div>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.4rem' }}>Define Evaluation Module</h3>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-dim)' }}>This will be linked to Faculty: {user.name}</p>
+                                    </div>
                                 </div>
-                                <div style={{ marginTop: "1rem" }}><button type="submit" className="btn-add">Save</button> <button type="button" onClick={() => setShowExamForm(false)}>Cancel</button></div>
-                            </form>
+                                
+                                <form onSubmit={handleCreateExam}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2.5rem", marginBottom: '2.5rem' }}>
+                                        <div className="profile-form-group">
+                                            <label className="profile-label">Assessment Title / Label</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="e.g. Unit Test 1, Sessional" 
+                                                className="profile-input"
+                                                value={examForm.name} 
+                                                onChange={e => setExamForm({ ...examForm, name: e.target.value })} 
+                                                required
+                                            />
+                                        </div>
+                                        <div className="profile-form-group">
+                                            <label className="profile-label">Flexible Exam Type</label>
+                                            <select 
+                                                className="profile-input"
+                                                value={examForm.type} 
+                                                onChange={e => setExamForm({ ...examForm, type: e.target.value })} 
+                                                required
+                                            >
+                                                <option value="CIE">CIE 1 (30 Marks)</option>
+                                                <option value="CIE">CIE 2 (30 Marks)</option>
+                                                <option value="CIE">CIE 3 (30 Marks)</option>
+                                                <option value="Class Test">Class Test / Assignment</option>
+                                                <option value="Quiz">Interactive Quiz</option>
+                                                <option value="Mid-Term">Mid-Term Examination</option>
+                                                <option value="Terminal">Final Terminal Exam</option>
+                                            </select>
+                                        </div>
+                                        <div className="profile-form-group">
+                                            <label className="profile-label">Maximum Scaling (Full Marks)</label>
+                                            <input 
+                                                type="number" 
+                                                className="profile-input"
+                                                value={examForm.max_marks} 
+                                                onChange={e => setExamForm({ ...examForm, max_marks: e.target.value })} 
+                                                required
+                                            />
+                                        </div>
+                                        <div className="profile-form-group">
+                                            <label className="profile-label">Assessment Date</label>
+                                            <input 
+                                                type="date" 
+                                                className="profile-input"
+                                                value={examForm.exam_date} 
+                                                onChange={e => setExamForm({ ...examForm, exam_date: e.target.value })} 
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="info-alert" style={{ marginBottom: '2.5rem', opacity: 0.8 }}>
+                                        <p style={{ margin: 0, fontSize: '0.8rem' }}>
+                                            ⚠️ This assessment is strictly linked to <strong>{selectedContext.name}</strong> ({selectedContext.code}) for the <strong>{selectedContext.batch}</strong> batch.
+                                        </p>
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                                        <button type="button" className="btn-cancel" style={{ padding: '1rem 2rem' }} onClick={() => setShowExamForm(false)}>Discard</button>
+                                        <button type="submit" className="btn-save" style={{ padding: '1rem 2.5rem' }}>Register Assessment</button>
+                                    </div>
+                                </form>
+                            </div>
                         )}
-                        <table className="p-table">
-                            <thead><tr><th>Exam</th><th>Max</th><th>Action</th></tr></thead>
-                            <tbody>{subjectExams.map(ex => <tr key={ex.id}><td>{ex.name}</td><td>{ex.max_marks}</td><td><button onClick={() => handleDeleteExam(ex.id)}>Delete</button></td></tr>)}</tbody>
-                        </table>
+
+                        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+                            <div style={{ padding: '1.5rem 2.5rem', background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-card)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span style={{ fontSize: '1.25rem' }}>🧾</span>
+                                <h3 style={{ margin: 0 }}>Subject Assessment Registry</h3>
+                            </div>
+                            <div className="p-table-wrapper">
+                                <table className="p-table">
+                                    <thead>
+                                        <tr>
+                                            <th style={{ paddingLeft: '2.5rem' }}>MODULE NAME</th>
+                                            <th>CATEGORY</th>
+                                            <th>MAX SCALE</th>
+                                            <th>DATE</th>
+                                            <th style={{ textAlign: 'right', paddingRight: '2.5rem' }}>OPERATIONS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {subjectExams.length > 0 ? subjectExams.map(ex => (
+                                            <tr key={ex.id}>
+                                                <td style={{ paddingLeft: '2.5rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.7rem' }}>
+                                                            {ex.type ? ex.type.substring(0, 2).toUpperCase() : 'EX'}
+                                                        </div>
+                                                        <span style={{ fontWeight: 700 }}>{ex.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', fontSize: '0.7rem' }}>{ex.type || 'Standard'}</span>
+                                                </td>
+                                                <td>
+                                                    <span style={{ fontWeight: 600 }}>{ex.max_marks} Marks</span>
+                                                </td>
+                                                <td>
+                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>{new Date(ex.exam_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                </td>
+                                                <td style={{ textAlign: 'right', paddingRight: '2.5rem' }}>
+                                                    <button 
+                                                        onClick={() => handleDeleteExam(ex.id)}
+                                                        style={{ 
+                                                            background: 'rgba(244, 63, 94, 0.1)', 
+                                                            color: '#f43f5e', 
+                                                            border: 'none', 
+                                                            padding: '8px 16px', 
+                                                            borderRadius: '8px', 
+                                                            fontSize: '0.75rem', 
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan="5" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-dim)' }}>
+                                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
+                                                    No assessment modules defined for this context yet.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </section>
                 )}
 
@@ -593,14 +735,14 @@ const FacultyDashboard = () => {
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📄</div>
                                 <h2>Submit Assessment Record</h2>
                                 <p style={{ color: 'var(--text-dim)', marginBottom: '2rem' }}>Upload the final grades for the selected assessment in CSV format.</p>
-                                
+
                                 <div style={{ maxWidth: '400px', margin: '0 auto', width: '100%' }}>
                                     <label style={{ display: 'block', textAlign: 'left', fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px' }}>TARGET ASSESSMENT</label>
                                     <select value={selectedExamId} onChange={e => setSelectedExamId(e.target.value)} style={{ width: "100%", padding: "1rem", marginBottom: "2rem", borderRadius: '12px' }}>
                                         <option value="">Choose Exam...</option>
                                         {subjectExams.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
                                     </select>
-                                    
+
                                     <input type="file" id="up-f" hidden onChange={e => handleMarksUpload(e.target.files[0])} disabled={!selectedExamId} />
                                     <label htmlFor="up-f" className={`btn-add ${!selectedExamId ? 'disabled' : ''}`} style={{ width: '100%', padding: '1.2rem', display: 'block', textAlign: 'center' }}>
                                         Select CSV Record
@@ -615,7 +757,7 @@ const FacultyDashboard = () => {
                                 <p style={{ fontSize: '0.9rem', color: 'var(--text-dim)', lineHeight: '1.6' }}>
                                     Follow these steps to ensure your grade record is processed without errors.
                                 </p>
-                                
+
                                 <div className="guideline-step" style={{ marginTop: '1.5rem' }}>
                                     <h5 style={{ margin: '0 0 5px 0', fontSize: '0.85rem' }}>1. Required Columns</h5>
                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Your CSV must include these two exact headers:</p>
@@ -687,8 +829,8 @@ const FacultyDashboard = () => {
                                 </div>
                                 <div className="info-group">
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, marginBottom: '8px' }}>EMPLOYEE ID</label>
-                                    <div className="glass-card" style={{ 
-                                        padding: '1rem', 
+                                    <div className="glass-card" style={{
+                                        padding: '1rem',
                                         background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
                                         border: '1px solid rgba(59, 130, 246, 0.2)',
                                         display: 'flex',
