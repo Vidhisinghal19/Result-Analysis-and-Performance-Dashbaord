@@ -24,7 +24,7 @@ def register():
         db.session.flush()
 
         if role == "student":
-            db.session.add(Student(user_id=user.id, enrollment_number=data.get("enrollment_number"), course=data.get("course"), semester=data.get("semester")))
+            db.session.add(Student(user_id=user.id, enrollment_number=data.get("enrollment_number"), batch_id=data.get("batch_id")))
         elif role == "faculty":
             db.session.add(Faculty(user_id=user.id, department=data.get("department")))
 

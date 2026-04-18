@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import "./Auth.css"; // Reusing Login.css
@@ -9,12 +9,21 @@ function Register() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [role, setRole] = useState("student");
+    const [enrollmentNumber, setEnrollmentNumber] = useState("");
+    const [batchId, setBatchId] = useState("");
+    const [batches, setBatches] = useState([]);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        axios.get("http://127.0.0.1:5001/api/admin/batches")
+            .then(res => setBatches(res.data))
+            .catch(err => console.error("Error fetching batches:", err));
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -61,7 +70,9 @@ function Register() {
                 name,
                 email,
                 password,
-                role
+                role,
+                enrollment_number: role === "student" ? enrollmentNumber : undefined,
+                batch_id: role === "student" ? batchId : undefined
             });
 
             setSuccess("Account created successfully! Redirecting to login...");
@@ -221,6 +232,43 @@ function Register() {
                                 <small>{roleDetails.label} access will be granted</small>
                             </div> */}
                         </div>
+
+                        {role === "student" && (
+                            <>
+                                <div className="form-group">
+                                    <label htmlFor="enrollmentNumber">
+                                        <i className="fas fa-id-card"></i>
+                                        Enrollment Number
+                                    </label>
+                                    <input
+                                        id="enrollmentNumber"
+                                        type="text"
+                                        placeholder="Enter your enrollment number"
+                                        value={enrollmentNumber}
+                                        onChange={(e) => setEnrollmentNumber(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="batchId">
+                                        <i className="fas fa-graduation-cap"></i>
+                                        Batch
+                                    </label>
+                                    <select
+                                        id="batchId"
+                                        value={batchId}
+                                        onChange={(e) => setBatchId(e.target.value)}
+                                        className="role-select"
+                                        required
+                                    >
+                                        <option value="">Select your batch</option>
+                                        {batches.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        )}
 
                         <button type="submit" className="btn-submit" disabled={loading}>
                             {loading ? (

@@ -29,24 +29,43 @@ const AdminDashboard = () => {
     const [faculty, setFaculty] = useState([]);
     const [users, setUsers] = useState([]);
     const [subjects, setSubjects] = useState([]);
+    const [allFaculty, setAllFaculty] = useState([]);
+    const [batches, setBatches] = useState([]);
+    const [allCourses, setAllCourses] = useState([]);
+    const [coursesList, setCoursesList] = useState([]);
+    const [batchesList, setBatchesList] = useState([]);
+    const [semesters, setSemesters] = useState([]);
 
     // Search & pagination
     const [searchStudent, setSearchStudent] = useState("");
     const [searchFaculty, setSearchFaculty] = useState("");
     const [searchSubject, setSearchSubject] = useState("");
+    const [searchCourse, setSearchCourse] = useState("");
+    const [searchBatch, setSearchBatch] = useState("");
     const [pageStudent, setPageStudent] = useState(1);
     const [pageFaculty, setPageFaculty] = useState(1);
     const [pageUser, setPageUser] = useState(1);
     const [pageSubject, setPageSubject] = useState(1);
+    const [pageCourse, setPageCourse] = useState(1);
+    const [pageBatch, setPageBatch] = useState(1);
     const [totalPagesStudent, setTotalPagesStudent] = useState(1);
     const [totalPagesFaculty, setTotalPagesFaculty] = useState(1);
     const [totalPagesUser, setTotalPagesUser] = useState(1);
     const [totalPagesSubject, setTotalPagesSubject] = useState(1);
+    const [totalPagesCourse, setTotalPagesCourse] = useState(1);
+    const [totalPagesBatch, setTotalPagesBatch] = useState(1);
 
     // Profile edit state
     const [profileForm, setProfileForm] = useState({ name: "", email: "", current_password: "", new_password: "", confirm_password: "" });
     const [profileLoading, setProfileLoading] = useState(false);
     const [profileMessage, setProfileMessage] = useState({ text: "", type: "" });
+
+    // CRUD Modal state
+    const [crudModal, setCrudModal] = useState({ open: false, action: "add", type: "" });
+    const [crudForm, setCrudForm] = useState({});
+    const [crudLoading, setCrudLoading] = useState(false);
+    const [crudMessage, setCrudMessage] = useState({ text: "", type: "" });
+    const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, type: "" });
 
     // ─── Data Fetchers ───────────────────────────────────────────────────────
 
@@ -78,6 +97,48 @@ const AdminDashboard = () => {
         } catch (_) { }
     }, [searchSubject]);
 
+    const fetchAllFaculty = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/api/dashboard/all-faculty`);
+            setAllFaculty(res.data);
+        } catch (_) { }
+    }, []);
+
+    const fetchBatches = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/api/admin/batches`);
+            setBatches(res.data);
+        } catch (_) { }
+    }, []);
+
+    const fetchAllCourses = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/api/admin/courses`);
+            setAllCourses(res.data);
+        } catch (_) { }
+    }, []);
+
+    const fetchCoursesListData = useCallback(async (page) => {
+        try {
+            const res = await axios.get(`${API_BASE}/api/dashboard/courses-list?page=${page}&search=${searchCourse}`);
+            setCoursesList(res.data.data); setTotalPagesCourse(res.data.pages); setPageCourse(page);
+        } catch (_) { }
+    }, [searchCourse]);
+
+    const fetchBatchesListData = useCallback(async (page) => {
+        try {
+            const res = await axios.get(`${API_BASE}/api/dashboard/batches-list?page=${page}&search=${searchBatch}`);
+            setBatchesList(res.data.data); setTotalPagesBatch(res.data.pages); setPageBatch(page);
+        } catch (_) { }
+    }, [searchBatch]);
+
+    const fetchSemesters = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/api/admin/semesters`);
+            setSemesters(res.data);
+        } catch (_) { }
+    }, []);
+
     const fetchDashboardData = useCallback(async () => {
         try {
             const [statsRes, roleRes, courseRes] = await Promise.all([
@@ -92,9 +153,10 @@ const AdminDashboard = () => {
                 { name: "Admins", value: roleRes.data.admins, fill: "#f43f5e" },
             ]);
             setCourseData(courseRes.data);
-            fetchStudentsData(1); fetchFacultyData(1); fetchUsersData(1); fetchSubjectsData(1);
+            fetchStudentsData(1); fetchFacultyData(1); fetchUsersData(1); fetchSubjectsData(1); fetchAllFaculty(); fetchBatches(); fetchSemesters();
+            fetchCoursesListData(1); fetchBatchesListData(1); fetchAllCourses();
         } catch (err) { console.error("Dashboard fetch error:", err); }
-    }, [fetchStudentsData, fetchFacultyData, fetchUsersData, fetchSubjectsData]);
+    }, [fetchStudentsData, fetchFacultyData, fetchUsersData, fetchSubjectsData, fetchAllFaculty]);
 
     useEffect(() => {
         const userData = localStorage.getItem("user");
@@ -106,7 +168,240 @@ const AdminDashboard = () => {
         fetchDashboardData();
     }, [navigate, fetchDashboardData]);
 
-    // ─── Handlers ────────────────────────────────────────────────────────────
+    // ─── CRUD Handlers ──────────────────────────────────────────────────────
+
+    const openCrudModal = (action, type, item = null) => {
+        setCrudForm(item || {});
+        setCrudMessage({ text: "", type: "" });
+        setCrudModal({ open: true, action, type });
+    };
+
+    const closeCrudModal = useCallback(() => {
+        setCrudModal({ open: false, action: "", type: "" });
+        setCrudForm({});
+        setCrudMessage({ text: "", type: "" });
+    }, []);
+
+    const handleCrudFormChange = useCallback((e) => {
+        setCrudForm(f => ({ ...f, [e.target.name]: e.target.value }));
+    }, []);
+
+    const handleCrudSave = async () => {
+        setCrudLoading(true);
+        setCrudMessage({ text: "", type: "" });
+        try {
+            let endpoint = "";
+            let method = "";
+            let payload = {};
+
+            // Build payload based on type
+            if (crudModal.type === "student") {
+                // Validate required fields for students
+                if (!crudForm.name || !crudForm.email || !crudForm.enrollment_number) {
+                    setCrudMessage({ text: "Name, Email, and Enrollment Number are required!", type: "error" });
+                    setCrudLoading(false);
+                    return;
+                }
+                payload = {
+                    name: crudForm.name,
+                    email: crudForm.email,
+                    enrollment_number: crudForm.enrollment_number,
+                    batch_id: crudForm.batch_id
+                };
+                if (crudModal.action === "add") {
+                    endpoint = `${API_BASE}/api/admin/student`;
+                    method = "POST";
+                    payload.password = crudForm.password || "jims@123456";
+                } else {
+                    endpoint = `${API_BASE}/api/admin/student/${crudForm.id}`;
+                    method = "PUT";
+                }
+            } else if (crudModal.type === "faculty") {
+                // Validate required fields for faculty
+                if (!crudForm.name || !crudForm.email) {
+                    setCrudMessage({ text: "Name and Email are required!", type: "error" });
+                    setCrudLoading(false);
+                    return;
+                }
+                payload = {
+                    name: crudForm.name,
+                    email: crudForm.email,
+                    department: crudForm.department || ""
+                };
+                if (crudModal.action === "add") {
+                    endpoint = `${API_BASE}/api/admin/faculty`;
+                    method = "POST";
+                    payload.password = crudForm.password || "jims@123456";
+                } else {
+                    endpoint = `${API_BASE}/api/admin/faculty/${crudForm.id}`;
+                    method = "PUT";
+                }
+            } else if (crudModal.type === "user") {
+                // Validate required fields for users
+                if (!crudForm.name || !crudForm.email || !crudForm.role) {
+                    setCrudMessage({ text: "Name, Email, and Role are required!", type: "error" });
+                    setCrudLoading(false);
+                    return;
+                }
+                payload = {
+                    name: crudForm.name,
+                    email: crudForm.email,
+                    role: crudForm.role
+                };
+                if (crudModal.action === "add") {
+                    endpoint = `${API_BASE}/api/admin/user`;
+                    method = "POST";
+                    payload.password = crudForm.password || "jims@123456";
+                } else {
+                    endpoint = `${API_BASE}/api/admin/user/${crudForm.id}`;
+                    method = "PUT";
+                }
+            } else if (crudModal.type === "subject") {
+                if (!crudForm.name || !crudForm.code) {
+                    setCrudMessage({ text: "Name and Code are required!", type: "error" });
+                    setCrudLoading(false);
+                    return;
+                }
+                payload = {
+                    name: crudForm.name,
+                    code: crudForm.code,
+                    faculty_id: crudForm.faculty_id || null,
+                    semester_id: crudForm.semester_id || null
+                };
+                if (crudModal.type === "subject") {
+                    fetchSubjectsData(pageSubject);
+                } else if (crudModal.type === "course") {
+                    fetchCoursesListData(pageCourse);
+                } else if (crudModal.type === "batch") {
+                    fetchBatchesListData(pageBatch);
+                }
+                
+                if (crudModal.action === "add") {
+                    endpoint = `${API_BASE}/api/admin/subject`;
+                    method = "POST";
+                } else {
+                    endpoint = `${API_BASE}/api/admin/subject/${crudForm.id}`;
+                    method = "PUT";
+                }
+            } else if (crudModal.type === "course") {
+                if (!crudForm.name || !crudForm.code) {
+                    setCrudMessage({ text: "Name and Code are required!", type: "error" });
+                    setCrudLoading(false); return;
+                }
+                payload = { name: crudForm.name, code: crudForm.code };
+                if (crudModal.action === "add") {
+                    endpoint = `${API_BASE}/api/admin/course`;
+                    method = "POST";
+                } else {
+                    endpoint = `${API_BASE}/api/admin/course/${crudForm.id}`;
+                    method = "PUT";
+                }
+            } else if (crudModal.type === "batch") {
+                if (!crudForm.name || !crudForm.course_id) {
+                    setCrudMessage({ text: "Name and Course are required!", type: "error" });
+                    setCrudLoading(false); return;
+                }
+                payload = {
+                    name: crudForm.name,
+                    course_id: crudForm.course_id,
+                    start_year: crudForm.start_year,
+                    end_year: crudForm.end_year,
+                    num_semesters: crudForm.num_semesters || 0
+                };
+                if (crudModal.action === "add") {
+                    endpoint = `${API_BASE}/api/admin/batch`;
+                    method = "POST";
+                } else {
+                    endpoint = `${API_BASE}/api/admin/batch/${crudForm.id}`;
+                    method = "PUT";
+                }
+            }
+
+            if (!endpoint) {
+                setCrudMessage({ text: "Invalid operation type!", type: "error" });
+                setCrudLoading(false);
+                return;
+            }
+
+            const res = method === "POST" ? await axios.post(endpoint, payload) : await axios.put(endpoint, payload);
+            setCrudMessage({ text: res.data.message || "Operation successful!", type: "success" });
+
+            // Refresh data after a short delay, then close modal
+            setTimeout(() => {
+                // Only refresh the relevant data, not everything
+                if (crudModal.type === "student") {
+                    fetchStudentsData(pageStudent);
+                } else if (crudModal.type === "faculty") {
+                    fetchFacultyData(pageFaculty);
+                } else if (crudModal.type === "user") {
+                    fetchUsersData(pageUser);
+                } else if (crudModal.type === "subject") {
+                    fetchSubjectsData(pageSubject);
+                } else if (crudModal.type === "course") {
+                    fetchCoursesListData(pageCourse);
+                    fetchDashboardData();
+                } else if (crudModal.type === "batch") {
+                    fetchBatchesListData(pageBatch);
+                    fetchBatches();
+                    fetchDashboardData();
+                }
+
+                // Refresh stats separately without closing the modal immediately
+                axios.get(`${API_BASE}/api/dashboard/stats`).then(res => setStats(res.data)).catch(() => { });
+
+                // Close modal after showing success
+                setTimeout(() => closeCrudModal(), 500);
+            }, 1000);
+        } catch (err) {
+            console.error("CRUD Error:", err);
+            const msg = err.response?.data?.error || err.message || "Operation failed!";
+            setCrudMessage({ text: msg, type: "error" });
+        } finally {
+            setCrudLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setCrudLoading(true);
+        try {
+            let endpoint = `${API_BASE}/api/admin/${deleteConfirm.type}/${deleteConfirm.id}`;
+            await axios.delete(endpoint);
+            setCrudMessage({ text: "Deleted successfully!", type: "success" });
+
+            setTimeout(() => {
+                setDeleteConfirm({ open: false, id: null, type: "" });
+
+                // Only refresh the relevant data
+                if (deleteConfirm.type === "student") {
+                    fetchStudentsData(pageStudent);
+                } else if (deleteConfirm.type === "faculty") {
+                    fetchFacultyData(pageFaculty);
+                } else if (deleteConfirm.type === "user") {
+                    fetchUsersData(pageUser);
+                } else if (deleteConfirm.type === "subject") {
+                    fetchSubjectsData(pageSubject);
+                } else if (deleteConfirm.type === "course") {
+                    fetchCoursesListData(pageCourse);
+                    fetchDashboardData();
+                } else if (deleteConfirm.type === "batch") {
+                    fetchBatchesListData(pageBatch);
+                    fetchBatches();
+                    fetchDashboardData();
+                }
+
+                // Update stats without full refresh
+                axios.get(`${API_BASE}/api/dashboard/stats`).then(res => setStats(res.data)).catch(() => { });
+            }, 1000);
+        } catch (err) {
+            const msg = err.response?.data?.error || "Delete failed!";
+            setCrudMessage({ text: msg, type: "error" });
+            setTimeout(() => setDeleteConfirm({ open: false, id: null, type: "" }), 2000);
+        } finally {
+            setCrudLoading(false);
+        }
+    };
+
+    // ─── Other Handlers ─────────────────────────────────────────────────────
 
     const handleProfileChange = (e) => {
         setProfileForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -178,14 +473,58 @@ const AdminDashboard = () => {
 
     if (!user) return null;
 
+    // ─── DELETE CONFIRM MODAL ───────────────────────────────────────────────
+
+    const DeleteConfirmModal = () => {
+        if (!deleteConfirm.open) return null;
+
+        return (
+            <div className="modal-overlay" onClick={(e) => {
+                if (e.target === e.currentTarget && !crudLoading) {
+                    setDeleteConfirm({ open: false, id: null, type: "" });
+                }
+            }}>
+                <div className="modal-content modal-confirm" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h3>Confirm Delete</h3>
+                    </div>
+                    <div className="modal-body">
+                        <p>Are you sure you want to delete this {deleteConfirm.type}? This action cannot be undone.</p>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn-cancel" onClick={() => setDeleteConfirm({ open: false, id: null, type: "" })} disabled={crudLoading}>Cancel</button>
+                        <button className="btn-delete" onClick={handleDelete} disabled={crudLoading}>
+                            {crudLoading ? "Deleting..." : "Delete"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     // ─── Render ──────────────────────────────────────────────────────────────
 
     return (
         <div className="premium-dashboard">
+            <CrudFormComponent
+                crudModal={crudModal}
+                crudForm={crudForm}
+                crudLoading={crudLoading}
+                crudMessage={crudMessage}
+                handleCrudFormChange={handleCrudFormChange}
+                handleCrudSave={handleCrudSave}
+                closeCrudModal={closeCrudModal}
+                allFaculty={allFaculty}
+                batches={batches}
+                semesters={semesters}
+                allCourses={allCourses}
+            />
+            <DeleteConfirmModal />
+
             {/* SIDEBAR */}
             <aside className="sidebar">
                 <div className="sidebar-logo">
-                    <span className="logo-icon">💠</span>
+                    <span className="logo-icon"></span>
                     <h2>JIMS ROHINI</h2>
                 </div>
                 <nav className="sidebar-nav">
@@ -193,7 +532,10 @@ const AdminDashboard = () => {
                         { id: "students", icon: "🎓", label: "Students" },
                         { id: "faculty", icon: "👨‍🏫", label: "Faculty" },
                         { id: "subjects", icon: "📘", label: "Subjects" },
+                        { id: "courses", icon: "🏫", label: "Courses" },
+                        { id: "batches", icon: "📅", label: "Batches" },
                         { id: "users", icon: "👥", label: "Users" },
+                        { id: "guidelines", icon: "📋", label: "CSV Guidelines" },
                         { id: "profile", icon: "✏️", label: "Edit Profile" },
                     ].map(({ id, icon, label }) => (
                         <button key={id} className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)}>
@@ -210,8 +552,12 @@ const AdminDashboard = () => {
             <main className="main-content">
                 <header className="main-header">
                     <div className="header-info">
-                        <h1>{activeTab === "profile" ? "Edit Profile" : "Admin Overview"}</h1>
-                        <p>{activeTab === "profile" ? "Manage your account details and password" : "Real-time system analytics and management"}</p>
+                        <h1>{activeTab === "profile" ? "Edit Profile" : activeTab === "guidelines" ? "Upload Guidelines" : "Admin Overview"}</h1>
+                        <p>
+                            {activeTab === "profile" ? "Manage your account details and password" : 
+                             activeTab === "guidelines" ? "Instructions for CSV data preparation and bulk uploads" : 
+                             "Real-time system analytics and management"}
+                        </p>
                     </div>
                     <div className="header-profile">
                         <div className="profile-info">
@@ -314,8 +660,70 @@ const AdminDashboard = () => {
                     </section>
                 )}
 
+                {/* ── GUIDELINES TAB ── */}
+                {activeTab === "guidelines" && (
+                    <section className="guidelines-section">
+                        <div className="glass-card guidelines-card">
+                            <div className="guidelines-header">
+                                <h2>Bulk Upload Instructions</h2>
+                                <p>Follow these structural requirements to ensure successful CSV uploads.</p>
+                            </div>
+
+                            <div className="guidelines-grid">
+                                <div className="guideline-item">
+                                    <div className="guideline-icon">👥</div>
+                                    <h3>Users CSV</h3>
+                                    <ul>
+                                        <li><strong>name:</strong> Required (Full Name)</li>
+                                        <li><strong>email:</strong> Required (Unique Email)</li>
+                                        <li><strong>password:</strong> Optional (Default: jims@123456)</li>
+                                        <li><strong>role:</strong> Required (student / faculty / admin)</li>
+                                        <li><strong>enrollment_number:</strong> Required for students</li>
+                                        <li><strong>batch_name:</strong> Required for students (e.g. 2024-2027)</li>
+                                        <li><strong>department:</strong> Required for faculty</li>
+                                    </ul>
+                                </div>
+
+                                <div className="guideline-item">
+                                    <div className="guideline-icon">📘</div>
+                                    <h3>Subjects CSV</h3>
+                                    <ul>
+                                        <li><strong>name:</strong> Required (Subject Title)</li>
+                                        <li><strong>code:</strong> Required (Unique Code)</li>
+                                        <li><strong>batch_name:</strong> Required (Target Batch)</li>
+                                        <li><strong>semester_number:</strong> Required (e.g. 1, 2)</li>
+                                        <li><strong>faculty_email:</strong> Optional (Assigns Teacher)</li>
+                                        <li><strong>type:</strong> Optional (core / elective)</li>
+                                        <li><strong>credits:</strong> Optional (Number)</li>
+                                    </ul>
+                                </div>
+
+                                <div className="guideline-item">
+                                    <div className="guideline-icon">📊</div>
+                                    <h3>Marks CSV</h3>
+                                    <ul>
+                                        <li><strong>enrollment_number:</strong> Required (Matching Student)</li>
+                                        <li><strong>subject_code:</strong> Required (Matching Subject)</li>
+                                        <li><strong>cie_number:</strong> Required (e.g. 1, 2)</li>
+                                        <li><strong>marks_obtained:</strong> Required (Number)</li>
+                                        <li><strong>max_marks:</strong> Required (Number)</li>
+                                        <li><strong>exam_date:</strong> Optional (YYYY-MM-DD)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div className="guidelines-footer">
+                                <div className="info-alert">
+                                    <span>ℹ️</span>
+                                    <p>Ensure that all Batches and Courses are created in the system BEFORE uploading Students or Subjects that reference them.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
                 {/* ── DASHBOARD TABS ── */}
-                {activeTab !== "profile" && (
+                {activeTab !== "profile" && activeTab !== "guidelines" && (
                     <>
                         {/* STATS */}
                         <section className="stats-section">
@@ -388,36 +796,90 @@ const AdminDashboard = () => {
                             <div className="glass-card table-container-p">
                                 <div className="table-header-p">
                                     <h3>Data Repository — {activeTab.toUpperCase()}</h3>
-                                    <input
-                                        type="text"
-                                        placeholder={`Search ${activeTab}...`}
-                                        onChange={(e) => {
-                                            if (activeTab === "students") { setSearchStudent(e.target.value); fetchStudentsData(1); }
-                                            if (activeTab === "faculty") { setSearchFaculty(e.target.value); fetchFacultyData(1); }
-                                            if (activeTab === "subjects") { setSearchSubject(e.target.value); fetchSubjectsData(1); }
-                                        }}
-                                    />
+                                    <div className="table-header-controls">
+                                        <input
+                                            type="text"
+                                            placeholder={`Search ${activeTab}...`}
+                                            onChange={(e) => {
+                                                if (activeTab === "students") { setSearchStudent(e.target.value); fetchStudentsData(1); }
+                                                if (activeTab === "faculty") { setSearchFaculty(e.target.value); fetchFacultyData(1); }
+                                                if (activeTab === "subjects") { setSearchSubject(e.target.value); fetchSubjectsData(1); }
+                                                if (activeTab === "courses") { setSearchCourse(e.target.value); fetchCoursesListData(1); }
+                                                if (activeTab === "batches") { setSearchBatch(e.target.value); fetchBatchesListData(1); }
+                                            }}
+                                        />
+                                        <button className="btn-add" onClick={() => {
+                                            const type = activeTab === "students" ? "student" : activeTab === "faculty" ? "faculty" : activeTab === "subjects" ? "subject" : activeTab === "courses" ? "course" : activeTab === "batches" ? "batch" : "user";
+                                            openCrudModal("add", type);
+                                        }}>
+                                            + Add {activeTab === "students" ? "Student" : activeTab === "faculty" ? "Faculty" : activeTab === "subjects" ? "Subject" : activeTab === "courses" ? "Course" : activeTab === "batches" ? "Batch" : "User"}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="p-table-wrapper">
                                     <table className="p-table">
                                         <thead>
-                                            {activeTab === "students" && <tr><th>Name</th><th>Email</th><th>Enrollment</th><th>Course</th><th>Sem</th></tr>}
-                                            {activeTab === "faculty" && <tr><th>Name</th><th>Email</th><th>Department</th></tr>}
-                                            {activeTab === "subjects" && <tr><th>Subject</th><th>Code</th><th>Sem</th><th>Faculty</th></tr>}
-                                            {activeTab === "users" && <tr><th>Name</th><th>Email</th><th>Role</th></tr>}
+                                            {activeTab === "students" && <tr><th>Name</th><th>Email</th><th>Enrollment</th><th>Course</th><th>Batch</th><th>Actions</th></tr>}
+                                            {activeTab === "faculty" && <tr><th>Name</th><th>Email</th><th>Department</th><th>Actions</th></tr>}
+                                            {activeTab === "subjects" && <tr><th>Subject</th><th>Code</th><th>Sem</th><th>Faculty</th><th>Actions</th></tr>}
+                                            {activeTab === "courses" && <tr><th>Name</th><th>Code</th><th>Created At</th><th>Actions</th></tr>}
+                                            {activeTab === "batches" && <tr><th>Batch Name</th><th>Duration</th><th>Course</th><th>Actions</th></tr>}
+                                            {activeTab === "users" && <tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>}
                                         </thead>
                                         <tbody>
                                             {activeTab === "students" && students.map(s => (
-                                                <tr key={s.id}><td>{s.name}</td><td>{s.email}</td><td>{s.enrollment_number}</td><td>{s.course}</td><td>{s.semester}</td></tr>
+                                                <tr key={s.id}>
+                                                    <td>{s.name}</td><td>{s.email}</td><td>{s.enrollment_number}</td><td>{s.course}</td><td>{s.batch}</td>
+                                                    <td className="action-buttons">
+                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "student", s)} title="Edit">✏️</button>
+                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: s.id, type: "student" })} title="Delete">🗑️</button>
+                                                    </td>
+                                                </tr>
                                             ))}
                                             {activeTab === "faculty" && faculty.map(f => (
-                                                <tr key={f.id}><td>{f.name}</td><td>{f.email}</td><td>{f.department}</td></tr>
+                                                <tr key={f.id}>
+                                                    <td>{f.name}</td><td>{f.email}</td><td>{f.department}</td>
+                                                    <td className="action-buttons">
+                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "faculty", f)} title="Edit">✏️</button>
+                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: f.id, type: "faculty" })} title="Delete">🗑️</button>
+                                                    </td>
+                                                </tr>
                                             ))}
                                             {activeTab === "subjects" && subjects.map(s => (
-                                                <tr key={s.id}><td>{s.name}</td><td>{s.code}</td><td>{s.semester}</td><td>{s.faculty_name}</td></tr>
+                                                <tr key={s.id}>
+                                                    <td>{s.name}</td><td>{s.code}</td><td>{s.semester}</td><td>{s.faculty_name}</td>
+                                                    <td className="action-buttons">
+                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "subject", s)} title="Edit">✏️</button>
+                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: s.id, type: "subject" })} title="Delete">🗑️</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {activeTab === "courses" && coursesList.map(c => (
+                                                <tr key={c.id}>
+                                                    <td>{c.name}</td><td>{c.code}</td><td>{c.created_at}</td>
+                                                    <td className="action-buttons">
+                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "course", c)} title="Edit">✏️</button>
+                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: c.id, type: "course" })} title="Delete">🗑️</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {activeTab === "batches" && batchesList.map(b => (
+                                                <tr key={b.id}>
+                                                    <td>{b.name}</td><td>{b.start_year} - {b.end_year}</td><td>{b.course}</td>
+                                                    <td className="action-buttons">
+                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "batch", b)} title="Edit">✏️</button>
+                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: b.id, type: "batch" })} title="Delete">🗑️</button>
+                                                    </td>
+                                                </tr>
                                             ))}
                                             {activeTab === "users" && users.map(u => (
-                                                <tr key={u.id}><td>{u.name}</td><td>{u.email}</td><td><span className={`badge-p ${u.role}`}>{u.role}</span></td></tr>
+                                                <tr key={u.id}>
+                                                    <td>{u.name}</td><td>{u.email}</td><td><span className={`badge-p ${u.role}`}>{u.role}</span></td>
+                                                    <td className="action-buttons">
+                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "user", u)} title="Edit">✏️</button>
+                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: u.id, type: "user" })} title="Delete">🗑️</button>
+                                                    </td>
+                                                </tr>
                                             ))}
                                         </tbody>
                                     </table>
@@ -435,12 +897,218 @@ const AdminDashboard = () => {
                                     {activeTab === "subjects" && Array.from({ length: totalPagesSubject }, (_, i) => i + 1).map(p => (
                                         <button key={p} className={p === pageSubject ? "active" : ""} onClick={() => fetchSubjectsData(p)}>{p}</button>
                                     ))}
+                                    {activeTab === "courses" && Array.from({ length: totalPagesCourse }, (_, i) => i + 1).map(p => (
+                                        <button key={p} className={p === pageCourse ? "active" : ""} onClick={() => fetchCoursesListData(p)}>{p}</button>
+                                    ))}
+                                    {activeTab === "batches" && Array.from({ length: totalPagesBatch }, (_, i) => i + 1).map(p => (
+                                        <button key={p} className={p === pageBatch ? "active" : ""} onClick={() => fetchBatchesListData(p)}>{p}</button>
+                                    ))}
                                 </div>
                             </div>
                         </section>
                     </>
                 )}
             </main>
+        </div>
+    );
+};
+
+// ─── CRUD Form Component ───────────────────────────────────────
+
+const CrudFormComponent = ({ crudModal, crudForm, crudLoading, crudMessage, handleCrudFormChange, handleCrudSave, closeCrudModal, allFaculty = [], batches = [], semesters = [], allCourses = [] }) => {
+    if (!crudModal.open) return null;
+
+    const getTitle = () => {
+        const action = crudModal.action === "add" ? "Add" : "Edit";
+        return `${action} ${crudModal.type.charAt(0).toUpperCase() + crudModal.type.slice(1)}`;
+    };
+
+    const getFormFields = () => {
+        if (crudModal.type === "student") {
+            return (
+                <>
+                    <div className="form-group-crud">
+                        <label>Name</label>
+                        <input type="text" name="name" value={crudForm.name || ""} onChange={handleCrudFormChange} placeholder="Full Name" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Email</label>
+                        <input type="email" name="email" value={crudForm.email || ""} onChange={handleCrudFormChange} placeholder="Email" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Enrollment Number</label>
+                        <input type="text" name="enrollment_number" value={crudForm.enrollment_number || ""} onChange={handleCrudFormChange} placeholder="Enrollment Number" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Batch</label>
+                        <select name="batch_id" value={crudForm.batch_id || ""} onChange={handleCrudFormChange} style={{ outline: "none" }}>
+                            <option value="">Select Batch</option>
+                            {batches.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {crudModal.action === "add" && (
+                        <div className="form-group-crud">
+                            <label>Password</label>
+                            <input type="password" name="password" value={crudForm.password || ""} onChange={handleCrudFormChange} placeholder="Default: jims@123456" autoComplete="new-password" />
+                        </div>
+                    )}
+                </>
+            );
+        } else if (crudModal.type === "faculty") {
+            return (
+                <>
+                    <div className="form-group-crud">
+                        <label>Name</label>
+                        <input type="text" name="name" value={crudForm.name || ""} onChange={handleCrudFormChange} placeholder="Full Name" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Email</label>
+                        <input type="email" name="email" value={crudForm.email || ""} onChange={handleCrudFormChange} placeholder="Email" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Department</label>
+                        <input type="text" name="department" value={crudForm.department || ""} onChange={handleCrudFormChange} placeholder="Department" autoComplete="off" />
+                    </div>
+                    {crudModal.action === "add" && (
+                        <div className="form-group-crud">
+                            <label>Password</label>
+                            <input type="password" name="password" value={crudForm.password || ""} onChange={handleCrudFormChange} placeholder="Default: jims@123456" autoComplete="new-password" />
+                        </div>
+                    )}
+                </>
+            );
+        } else if (crudModal.type === "user") {
+            return (
+                <>
+                    <div className="form-group-crud">
+                        <label>Name</label>
+                        <input type="text" name="name" value={crudForm.name || ""} onChange={handleCrudFormChange} placeholder="Full Name" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Email</label>
+                        <input type="email" name="email" value={crudForm.email || ""} onChange={handleCrudFormChange} placeholder="Email" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Role</label>
+                        <select name="role" value={crudForm.role || "admin"} onChange={handleCrudFormChange} style={{ outline: "none" }}>
+                            <option value="admin">Admin</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="student">Student</option>
+                        </select>
+                    </div>
+                    {crudModal.action === "add" && (
+                        <div className="form-group-crud">
+                            <label>Password</label>
+                            <input type="password" name="password" value={crudForm.password || ""} onChange={handleCrudFormChange} placeholder="Default: jims@123456" autoComplete="new-password" />
+                        </div>
+                    )}
+                </>
+            );
+        } else if (crudModal.type === "subject") {
+            return (
+                <>
+                    <div className="form-group-crud">
+                        <label>Subject Name</label>
+                        <input type="text" name="name" value={crudForm.name || ""} onChange={handleCrudFormChange} placeholder="e.g. Data Structures" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Subject Code</label>
+                        <input type="text" name="code" value={crudForm.code || ""} onChange={handleCrudFormChange} placeholder="e.g. CS101" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Semester</label>
+                        <select name="semester_id" value={crudForm.semester_id || ""} onChange={handleCrudFormChange} style={{ outline: "none" }}>
+                            <option value="">Select Semester</option>
+                            {semesters.map(s => (
+                                <option key={s.id} value={s.id}>{s.name} ({batches.find(b => b.id === s.batch_id)?.name})</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Assign Faculty</label>
+                        <select name="faculty_id" value={crudForm.faculty_id || ""} onChange={handleCrudFormChange} style={{ outline: "none" }}>
+                            <option value="">Unassigned</option>
+                            {allFaculty.map(f => (
+                                <option key={f.id} value={f.id}>{f.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </>
+            );
+        } else if (crudModal.type === "course") {
+            return (
+                <>
+                    <div className="form-group-crud">
+                        <label>Course Name</label>
+                        <input type="text" name="name" value={crudForm.name || ""} onChange={handleCrudFormChange} placeholder="e.g. Bachelor of Commerce" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Course Code</label>
+                        <input type="text" name="code" value={crudForm.code || ""} onChange={handleCrudFormChange} placeholder="e.g. BCOM-001" autoComplete="off" />
+                    </div>
+                </>
+            );
+        } else if (crudModal.type === "batch") {
+            return (
+                <>
+                    <div className="form-group-crud">
+                        <label>Batch Name</label>
+                        <input type="text" name="name" value={crudForm.name || ""} onChange={handleCrudFormChange} placeholder="e.g. 2024-2027" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Course</label>
+                        <select name="course_id" value={crudForm.course_id || ""} onChange={handleCrudFormChange} style={{ outline: "none" }}>
+                            <option value="">Select Course</option>
+                            {(allCourses || []).map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Start Year</label>
+                        <input type="number" name="start_year" value={crudForm.start_year || ""} onChange={handleCrudFormChange} placeholder="e.g. 2024" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>End Year</label>
+                        <input type="number" name="end_year" value={crudForm.end_year || ""} onChange={handleCrudFormChange} placeholder="e.g. 2027" autoComplete="off" />
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Number of Semesters</label>
+                        <input type="number" name="num_semesters" value={crudForm.num_semesters || ""} onChange={handleCrudFormChange} placeholder="e.g. 6" autoComplete="off" />
+                    </div>
+                </>
+            );
+        }
+    };
+
+    return (
+        <div className="modal-overlay" onClick={(e) => {
+            if (e.target === e.currentTarget) {
+                closeCrudModal();
+            }
+        }}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h3>{getTitle()}</h3>
+                    <button className="modal-close" onClick={closeCrudModal} disabled={crudLoading} style={{ opacity: crudLoading ? 0.5 : 1, cursor: crudLoading ? "not-allowed" : "pointer" }}>×</button>
+                </div>
+                <div className="modal-body">
+                    {getFormFields()}
+                    {crudMessage.text && (
+                        <div className={`form-message ${crudMessage.type}`}>
+                            {crudMessage.type === "success" ? "✅" : "❌"} {crudMessage.text}
+                        </div>
+                    )}
+                </div>
+                <div className="modal-footer">
+                    <button className="btn-cancel" onClick={closeCrudModal} disabled={crudLoading}>Cancel</button>
+                    <button className="btn-save" onClick={handleCrudSave} disabled={crudLoading}>
+                        {crudLoading ? "Saving..." : "Save"}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

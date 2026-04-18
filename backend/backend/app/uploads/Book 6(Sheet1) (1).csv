@@ -1,0 +1,21 @@
+name,email,role,password,enrollment_number,batch_name,department
+Aarav Sharma,aarav.sharma1@gmail.com,student,pass123,ENR001,2025-2027,MCA
+Diya Verma,diya.verma2@gmail.com,student,pass123,ENR002,2024-2027,BCA
+Rohan Gupta,rohan.gupta3@gmail.com,student,pass123,ENR003,2020-2023,BBA
+Sneha Kapoor,sneha.kapoor4@gmail.com,student,pass123,ENR004,2025-2027,MCA
+Kunal Mehta,kunal.mehta5@gmail.com,student,pass123,ENR005,2020-2023,BBA
+Priya Singh,priya.singh6@gmail.com,student,pass123,ENR006,2025-2027,MCA
+Rahul Jain,rahul.jain7@gmail.com,student,pass123,ENR007,2024-2027,BCA
+Ananya Das,ananya.das8@gmail.com,student,pass123,ENR008,2025-2027,MCA
+Vivek Kumar,vivek.kumar9@gmail.com,student,pass123,ENR009,2024-2027,BCA
+Neha Agarwal,neha.agarwal10@gmail.com,student,pass123,ENR010,2025-2027,MCA
+Arjun Patel,arjun.patel11@gmail.com,student,pass123,ENR011,2020-2024,BCOM
+Meera Iyer,meera.iyer12@gmail.com,student,pass123,ENR012,2025-2027,MCA
+Aditya Roy,aditya.roy13@gmail.com,student,pass123,ENR013,2025-2027,PGDM
+Pooja Nair,pooja.nair14@gmail.com,student,pass123,ENR014,2025-2027,MCA
+Saurabh Mishra,saurabh.mishra15@gmail.com,student,pass123,ENR015,2020-2023,BBA
+Kavya Reddy,kavya.reddy16@gmail.com,student,pass123,ENR016,2025-2027,MCA
+Manish Yadav,manish.yadav17@gmail.com,student,pass123,ENR017,2025-2027,PGDM
+Isha Choudhary,isha.choudhary18@gmail.com,student,pass123,ENR018,2025-2027,PGDM
+Nikhil Bansal,nikhil.bansal19@gmail.com,student,pass123,ENR019,2025-2027,MCA
+Riya Malhotra,riya.malhotra20@gmail.com,student,pass123,ENR020,2020-2023,BBA

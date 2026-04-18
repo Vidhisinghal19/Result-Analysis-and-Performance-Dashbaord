@@ -8,7 +8,30 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}})
+    
+    # Configure CORS with wildcard and explicit settings
+    CORS(app, 
+        resources={r"/*": {
+            "origins": "*",
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+            "allow_headers": ["Content-Type", "Authorization", "Accept"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "max_age": 3600,
+            "send_wildcard": True,
+            "automatic_options": True,
+            "vary_header": True
+        }}
+    )
+    
+    # Add after_request handler to ensure CORS headers are always set
+    @app.after_request
+    def after_request(response):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept'
+        response.headers['Access-Control-Max-Age'] = '3600'
+        return response
+    
     db.init_app(app)
 
     from app.routes.admin_routes import admin_bp

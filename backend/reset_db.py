@@ -1,5 +1,8 @@
 from app import create_app, db
 from app.models.user import User
+from app.models.course import Course
+from app.models.batch import Batch
+from app.models.semester import Semester
 from app.models.student import Student
 from app.models.faculty import Faculty
 from app.models.marks import Marks

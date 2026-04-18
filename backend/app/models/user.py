@@ -9,3 +9,16 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.Enum('admin', 'faculty', 'student'), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    # Relationships
+    student_profile = db.relationship('Student', backref='user', uselist=False, cascade='all, delete-orphan')
+    faculty_profile = db.relationship('Faculty', backref='user', uselist=False, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "role": self.role,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
