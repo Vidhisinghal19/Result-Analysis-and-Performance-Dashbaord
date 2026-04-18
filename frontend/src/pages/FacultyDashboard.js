@@ -34,7 +34,6 @@ const FacultyDashboard = () => {
     // Student Repository
     const [studentRepository, setStudentRepository] = useState([]);
     const [repoSearch, setRepoSearch] = useState("");
-    const [expandedRepoPaths, setExpandedRepoPaths] = useState([]);
     const [repoCourse, setRepoCourse] = useState("");
     const [repoBatch, setRepoBatch] = useState("");
     const [repoSem, setRepoSem] = useState("");
