@@ -272,6 +272,35 @@ const FacultyDashboard = () => {
                         <h1>{selectedContext ? selectedContext.name : "Faculty Command Center"}</h1>
                         <p>{selectedContext ? `${selectedContext.course} | ${selectedContext.batch}` : `Intelligent Result Analysis System`}</p>
                     </div>
+
+                    <div className="header-profile glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '0.6rem 1rem', borderRadius: '15px' }}>
+                        <div className="profile-info" style={{ textAlign: 'right' }}>
+                            <span className="name" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem' }}>{user.name}</span>
+                            <span className="role" style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Faculty</span>
+                        </div>
+                        <div className="profile-avatar" style={{ width: '40px', height: '40px', fontSize: '1rem' }}>
+                            {user.name[0].toUpperCase()}
+                        </div>
+                        <div style={{ height: '24px', width: '1px', background: 'rgba(0,0,0,0.1)' }}></div>
+                        <button 
+                            onClick={logout} 
+                            style={{ 
+                                background: 'transparent', 
+                                border: 'none', 
+                                cursor: 'pointer', 
+                                fontSize: '0.8rem', 
+                                fontWeight: 800,
+                                padding: '4px 8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#f43f5e',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                            }}
+                        >
+                            Sign Out
+                        </button>
+                    </div>
                 </header>
 
                 {/* ENHANCED OVERVIEW / COMMAND CENTER */}
