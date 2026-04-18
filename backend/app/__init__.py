@@ -38,10 +38,12 @@ def create_app():
     from app.routes.dashboard_routes import dashboard_bp
     from app.routes.auth_routes import auth_bp
     from app.routes.marks_routes import marks_bp
+    from app.routes.faculty_routes import faculty_bp
 
     app.register_blueprint(admin_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(marks_bp)
+    app.register_blueprint(faculty_bp)
 
     return app

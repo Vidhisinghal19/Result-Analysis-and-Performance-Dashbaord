@@ -275,7 +275,7 @@ const AdminDashboard = () => {
                 } else if (crudModal.type === "batch") {
                     fetchBatchesListData(pageBatch);
                 }
-                
+
                 if (crudModal.action === "add") {
                     endpoint = `${API_BASE}/api/admin/subject`;
                     method = "POST";
@@ -554,9 +554,9 @@ const AdminDashboard = () => {
                     <div className="header-info">
                         <h1>{activeTab === "profile" ? "Edit Profile" : activeTab === "guidelines" ? "Upload Guidelines" : "Admin Overview"}</h1>
                         <p>
-                            {activeTab === "profile" ? "Manage your account details and password" : 
-                             activeTab === "guidelines" ? "Instructions for CSV data preparation and bulk uploads" : 
-                             "Real-time system analytics and management"}
+                            {activeTab === "profile" ? "Manage your account details and password" :
+                                activeTab === "guidelines" ? "Instructions for CSV data preparation and bulk uploads" :
+                                    "Real-time system analytics and management"}
                         </p>
                     </div>
                     <div className="header-profile">
@@ -711,7 +711,7 @@ const AdminDashboard = () => {
                                     </ul>
                                 </div>
                             </div>
-                            
+
                             <div className="guidelines-footer">
                                 <div className="info-alert">
                                     <span>ℹ️</span>

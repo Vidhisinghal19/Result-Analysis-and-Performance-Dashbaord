@@ -66,8 +66,6 @@ def update_profile():
         user = User.query.filter_by(id=int(user_id)).first()
         if not user:
             return jsonify({"error": "User not found"}), 404
-        if user.role != "admin":
-            return jsonify({"error": "Not an admin user"}), 403
 
         new_name = data.get("name", "").strip()
         new_email = data.get("email", "").strip()
