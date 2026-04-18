@@ -43,10 +43,12 @@ CREATE TABLE faculty (
 CREATE TABLE students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNIQUE NOT NULL,
-    batch_id INT NOT NULL,
+    batch_id INT ,
+    current_semester_id INT,
     enrollment_number VARCHAR(50) UNIQUE NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE
+    FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE SET NULL,
+    FOREIGN KEY (current_semester_id) REFERENCES semesters(id) ON DELETE SET NULL
 );
 
 -- Academic Details
@@ -63,6 +65,17 @@ CREATE TABLE subjects (
     FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE SET NULL
 );
 
+CREATE TABLE exams (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    subject_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    max_marks FLOAT NOT NULL,
+    exam_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+);
+
 -- Student-Subject Mapping (For Electives)
 CREATE TABLE student_subjects (
     student_id INT NOT NULL,
@@ -72,17 +85,35 @@ CREATE TABLE student_subjects (
     FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
 );
 
+-- Support & Mentorship
+CREATE TABLE mentorship (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    faculty_id INT NOT NULL,
+    performance_rating VARCHAR(50),
+    remarks VARCHAR(255),
+    feedback TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE
+);
+
 -- Performance Tracking
 CREATE TABLE marks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
     subject_id INT NOT NULL,
-    cie_number ENUM('CIE1', 'CIE2', 'CIE3') NOT NULL,
+    exam_id INT,
     marks_obtained FLOAT NOT NULL,
-    max_marks FLOAT NOT NULL,
-    exam_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(student_id, subject_id, cie_number),
+    UNIQUE(student_id, subject_id, exam_id),
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
 );
+
+-- Seed Data: Only default admin user. All courses and batches must be created via Admin Dashboard.
+INSERT INTO users (name, email, password, role) VALUES 
+('System Admin', 'admin@example.com', 'admin123', 'admin');

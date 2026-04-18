@@ -14,7 +14,7 @@ def get_stats():
     try:
         return jsonify({
             'total_users': User.query.count(),
-            'total_students': User.query.filter_by(role='student').count(),
+            'total_students': Student.query.count(),
             'total_faculty': User.query.filter_by(role='faculty').count(),
             'total_admins': User.query.filter_by(role='admin').count(),
         })
@@ -61,28 +61,44 @@ def paginate_query(query, model_extractor, search_filter=None):
 def students_list():
     from app.models.batch import Batch
     from app.models.course import Course
-    query = db.session.query(
-        User.id, 
-        User.name, 
-        User.email, 
-        Student.enrollment_number, 
-        Course.name.label('course'),
-        Batch.name.label('batch')
-    ).join(Student, Student.user_id == User.id)\
-     .join(Batch, Student.batch_id == Batch.id)\
-     .join(Course, Batch.course_id == Course.id)
-    
-    def student_search(q, s):
-        return q.filter(db.or_(User.name.ilike(f'%{s}%'), User.email.ilike(f'%{s}%'), Student.enrollment_number.ilike(f'%{s}%')))
+    try:
+        # Start from Student table so we never miss a student record
+        query = db.session.query(
+            Student.id,
+            Student.enrollment_number,
+            Student.current_semester_id,
+            User.id.label('user_id'),
+            User.name,
+            User.email,
+            Batch.name.label('batch'),
+            Course.name.label('course'),
+            Semester.name.label('sem_name')
+        ).join(User, Student.user_id == User.id)\
+         .outerjoin(Batch, Student.batch_id == Batch.id)\
+         .outerjoin(Course, Batch.course_id == Course.id)\
+         .outerjoin(Semester, Student.current_semester_id == Semester.id)
 
-    return paginate_query(query, lambda r: {
-        'id': r.id, 
-        'name': r.name, 
-        'email': r.email, 
-        'enrollment_number': r.enrollment_number, 
-        'course': r.course,
-        'batch': r.batch
-    }, student_search)
+        def student_search(q, s):
+            return q.filter(db.or_(
+                User.name.ilike(f'%{s}%'),
+                User.email.ilike(f'%{s}%'),
+                Student.enrollment_number.ilike(f'%{s}%')
+            ))
+
+        return paginate_query(query, lambda r: {
+            'id': r.user_id,
+            'student_id': r.id,
+            'name': r.name,
+            'email': r.email,
+            'enrollment_number': r.enrollment_number,
+            'course': r.course or 'N/A',
+            'batch': r.batch or 'N/A',
+            'current_semester_id': r.current_semester_id,
+            'current_semester': r.sem_name or 'Not Set'
+        }, student_search)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 @dashboard_bp.route('/faculty-list', methods=['GET'])
 def faculty_list():

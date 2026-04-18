@@ -72,16 +72,45 @@ def get_my_subjects(user_id):
 def get_subject_students(subject_id):
     try:
         subject = Subject.query.get(subject_id)
-        if not subject: return jsonify({"error": "Subject not found"}), 404
+        if not subject:
+            return jsonify({"error": "Subject not found"}), 404
         semester = Semester.query.get(subject.semester_id)
-        if not semester: return jsonify({"error": "Semester not found"}), 404
-        students = db.session.query(
+        if not semester:
+            return jsonify({"error": "Semester not found"}), 404
+
+        base_query = db.session.query(
             Student.id,
             User.name,
             Student.enrollment_number
-        ).join(User, Student.user_id == User.id)\
-         .filter(Student.batch_id == semester.batch_id).all()
-        return jsonify([{"id": s.id, "name": s.name, "enrollment_number": s.enrollment_number} for s in students]), 200
+        ).join(User, Student.user_id == User.id)
+
+        if subject.type == 'elective':
+            # For electives: only students explicitly enrolled in this subject
+            from sqlalchemy import text
+            student_ids = db.session.execute(
+                text("SELECT student_id FROM student_subjects WHERE subject_id = :sid"),
+                {"sid": subject_id}
+            ).fetchall()
+            ids = [r[0] for r in student_ids]
+            if ids:
+                students = base_query.filter(Student.id.in_(ids)).all()
+            else:
+                students = []
+        else:
+            # For core subjects: match by batch_id OR by current_semester_id
+            students = base_query.filter(
+                db.or_(
+                    Student.batch_id == semester.batch_id,
+                    Student.current_semester_id == semester.id
+                )
+            ).all()
+
+        return jsonify([{
+            "id": s.id,
+            "name": s.name,
+            "enrollment_number": s.enrollment_number
+        } for s in students]), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -141,6 +170,68 @@ def delete_exam(exam_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+@faculty_bp.route('/student-repository/<int:user_id>', methods=['GET'])
+def get_student_repository(user_id):
+    """Returns a hierarchical student directory for the faculty: Course → Batch → Semester → Students"""
+    try:
+        faculty = Faculty.query.filter_by(user_id=user_id).first()
+        if not faculty:
+            return jsonify({"error": "Faculty not found"}), 404
+
+        # Get all subjects taught by this faculty
+        subjects = db.session.query(
+            Subject.id.label('subject_id'),
+            Subject.name.label('subject_name'),
+            Subject.code.label('subject_code'),
+            Course.id.label('course_id'),
+            Course.name.label('course_name'),
+            Batch.id.label('batch_id'),
+            Batch.name.label('batch_name'),
+            Semester.id.label('semester_id'),
+            Semester.name.label('semester_name')
+        ).join(Semester, Subject.semester_id == Semester.id)\
+         .join(Batch, Semester.batch_id == Batch.id)\
+         .join(Course, Batch.course_id == Course.id)\
+         .filter(Subject.faculty_id == faculty.id).all()
+
+        # Build the hierarchy
+        hierarchy = {}
+        for s in subjects:
+            # Get students for this batch
+            students = db.session.query(
+                Student.id,
+                Student.enrollment_number,
+                User.name,
+                User.email
+            ).join(User, Student.user_id == User.id)\
+             .filter(Student.batch_id == s.batch_id).all()
+
+            course_key = str(s.course_id)
+            batch_key = str(s.batch_id)
+            sem_key = str(s.semester_id)
+
+            if course_key not in hierarchy:
+                hierarchy[course_key] = {
+                    "id": s.course_id, "name": s.course_name, "batches": {}
+                }
+            if batch_key not in hierarchy[course_key]["batches"]:
+                hierarchy[course_key]["batches"][batch_key] = {
+                    "id": s.batch_id, "name": s.batch_name, "semesters": {}
+                }
+            if sem_key not in hierarchy[course_key]["batches"][batch_key]["semesters"]:
+                hierarchy[course_key]["batches"][batch_key]["semesters"][sem_key] = {
+                    "id": s.semester_id, "name": s.semester_name,
+                    "subjects": [],
+                    "students": [{"id": st.id, "enrollment_number": st.enrollment_number, "name": st.name, "email": st.email} for st in students]
+                }
+            hierarchy[course_key]["batches"][batch_key]["semesters"][sem_key]["subjects"].append({
+                "id": s.subject_id, "name": s.subject_name, "code": s.subject_code
+            })
+
+        return jsonify(list(hierarchy.values())), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @faculty_bp.route('/mentorship/<int:subject_id>', methods=['GET'])
 def get_subject_mentorship(subject_id):
     try:

@@ -26,72 +26,93 @@ def upload_users():
     file.save(filepath)
 
     try:
-        with open(filepath, newline='') as csvfile:
+        with open(filepath, newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)
             if not reader.fieldnames:
                 return jsonify({"error": "CSV file is missing headers"}), 400
 
-            count = 0
+            created = 0
+            updated = 0
+            batch_warnings = []
+
+            def clean_val(v):
+                return v.replace(' ', '').replace('\u2013', '-').replace('\u2014', '-').lower()
+
+            all_batches = Batch.query.all()
+
             for row in reader:
-                # Robust normalization: strip whitespace from both keys and values
-                norm = {k.strip().lower().replace(' ', '_'): (v.strip() if v else v) for k, v in row.items()}
-                
+                norm = {k.strip().lower().replace(' ', '_'): (v.strip() if v else '') for k, v in row.items()}
+
                 role = norm.get("role", "student").lower()
                 email = norm.get("email", "").lower()
-                if not email: continue
+                if not email:
+                    continue
 
-                print(f"DEBUG: Processing {email} with role {role}")
-
+                # Create or get user
                 user = User.query.filter_by(email=email).first()
-                if not user:
-                    user = User(name=norm.get("name"), email=email, password=norm.get("password", "jims@123456"), role=role)
+                is_new = user is None
+                if is_new:
+                    user = User(
+                        name=norm.get("name", email),
+                        email=email,
+                        password=norm.get("password", "jims@123456"),
+                        role=role
+                    )
                     db.session.add(user)
                     db.session.flush()
 
                 if role == "student":
-                    enrollment = norm.get("enrollment_number")
-                    batch_name = norm.get("batch_name")
-                    print(f"DEBUG: Student {email} needs batch '{batch_name}'")
-                    
-                    if enrollment and batch_name:
-                        # Normalize dashes: convert all types of dashes to standard hyphen
-                        norm_batch_name = batch_name.replace('–', '-').replace('—', '-')
-                        
-                        # Find batch where name (normalized) matches
-                        # We use a trick: search for all batches and find one that matches after normalization
-                        all_batches = Batch.query.all()
-                        batch = next((b for b in all_batches if b.name.replace('–', '-').replace('—', '-') == norm_batch_name), None)
-                        
-                        if batch:
-                            student = Student.query.filter_by(user_id=user.id).first()
-                            if not student:
-                                student = Student(user_id=user.id, enrollment_number=enrollment, batch_id=batch.id)
-                                db.session.add(student)
-                                print(f"DEBUG: Created student record for {email}")
-                            else:
-                                student.enrollment_number = enrollment
-                                student.batch_id = batch.id
-                                print(f"DEBUG: Updated student record for {email}")
+                    enrollment = norm.get("enrollment_number", "")
+                    batch_name = norm.get("batch_name") or norm.get("batch", "")
+
+                    # Find batch (fuzzy match)
+                    batch_id = None
+                    if batch_name:
+                        clean_target = clean_val(batch_name)
+                        matched = next((b for b in all_batches if clean_val(b.name) == clean_target), None)
+                        if matched:
+                            batch_id = matched.id
                         else:
-                            print(f"DEBUG: BATCH NOT FOUND: '{batch_name}' (Normalized: '{norm_batch_name}') for student {email}")
+                            batch_warnings.append(f"Batch '{batch_name}' not found for {email}")
+
+                    # Always create/update student record
+                    student = Student.query.filter_by(user_id=user.id).first()
+                    if not student:
+                        if not enrollment:
+                            enrollment = f"ENR-{user.id}"
+                        db.session.add(Student(user_id=user.id, enrollment_number=enrollment, batch_id=batch_id))
+                        created += 1
                     else:
-                        print(f"DEBUG: Missing enrollment or batch_name for {email}")
-                
+                        if enrollment:
+                            student.enrollment_number = enrollment
+                        if batch_id:
+                            student.batch_id = batch_id
+                        updated += 1
+
                 elif role == "faculty":
                     faculty = Faculty.query.filter_by(user_id=user.id).first()
                     if not faculty:
-                        faculty = Faculty(user_id=user.id, department=norm.get("department"))
-                        db.session.add(faculty)
+                        db.session.add(Faculty(user_id=user.id, department=norm.get("department", "")))
+                        created += 1
                     else:
-                        faculty.department = norm.get("department")
-                count += 1
+                        faculty.department = norm.get("department", "")
+                        updated += 1
+
             db.session.commit()
 
-        return jsonify({"message": f"Successfully processed {count} users", "count": count})
+            msg = f"Upload complete: {created} created, {updated} updated."
+            if batch_warnings:
+                msg += f" Warnings ({len(batch_warnings)}): " + "; ".join(batch_warnings[:3])
+                if len(batch_warnings) > 3:
+                    msg += f" ...and {len(batch_warnings)-3} more."
+
+            return jsonify({"message": msg, "created": created, "updated": updated, "warnings": batch_warnings})
 
     except Exception as e:
         db.session.rollback()
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
 
 @admin_bp.route("/upload/subjects", methods=["POST"])
 def upload_subjects():
@@ -299,7 +320,8 @@ def create_student():
         student = Student(
             user_id=user.id,
             enrollment_number=data.get("enrollment_number"),
-            batch_id=batch_id
+            batch_id=batch_id,
+            current_semester_id=data.get("current_semester_id")
         )
         db.session.add(student)
         db.session.commit()
@@ -310,6 +332,7 @@ def create_student():
             "email": user.email,
             "enrollment_number": student.enrollment_number,
             "batch_id": student.batch_id,
+            "current_semester_id": student.current_semester_id,
             "message": "Student created successfully"
         }), 201
     except Exception as e:
@@ -355,6 +378,9 @@ def update_student(user_id):
         if "batch_id" in data and data.get("batch_id"):
             student.batch_id = data.get("batch_id")
         
+        if "current_semester_id" in data:
+            student.current_semester_id = data.get("current_semester_id")
+        
         db.session.commit()
         
         return jsonify({
@@ -363,6 +389,7 @@ def update_student(user_id):
             "email": user.email,
             "enrollment_number": student.enrollment_number,
             "batch_id": student.batch_id,
+            "current_semester_id": student.current_semester_id,
             "message": "Student updated successfully"
         }), 200
     except ValueError as e:

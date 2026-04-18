@@ -206,7 +206,8 @@ const AdminDashboard = () => {
                     name: crudForm.name,
                     email: crudForm.email,
                     enrollment_number: crudForm.enrollment_number,
-                    batch_id: crudForm.batch_id
+                    batch_id: crudForm.batch_id,
+                    current_semester_id: crudForm.current_semester_id || null
                 };
                 if (crudModal.action === "add") {
                     endpoint = `${API_BASE}/api/admin/student`;
@@ -447,9 +448,10 @@ const AdminDashboard = () => {
             const res = await axios.post(`${API_BASE}/upload/users`, formData, { headers: { "Content-Type": "multipart/form-data" } });
             setUploadUserMessage(res.data.message || "Upload successful!");
             setTimeout(() => { setUploadUserMessage(""); fetchDashboardData(); }, 3000);
-        } catch (_) {
-            setUploadUserMessage("Upload failed");
-            setTimeout(() => setUploadUserMessage(""), 3000);
+        } catch (err) {
+            const msg = err.response?.data?.error || "Upload failed";
+            setUploadUserMessage(msg);
+            setTimeout(() => setUploadUserMessage(""), 5000);
         } finally { setUploadUserLoading(false); event.target.value = ""; }
     };
 
@@ -463,9 +465,10 @@ const AdminDashboard = () => {
             const res = await axios.post(`${API_BASE}/upload/subjects`, formData, { headers: { "Content-Type": "multipart/form-data" } });
             setUploadSubjectMessage(res.data.message || "Upload successful!");
             setTimeout(() => { setUploadSubjectMessage(""); fetchSubjectsData(1); }, 3000);
-        } catch (_) {
-            setUploadSubjectMessage("Upload failed");
-            setTimeout(() => setUploadSubjectMessage(""), 3000);
+        } catch (err) {
+            const msg = err.response?.data?.error || "Upload failed";
+            setUploadSubjectMessage(msg);
+            setTimeout(() => setUploadSubjectMessage(""), 5000);
         } finally { setUploadSubjectLoading(false); event.target.value = ""; }
     };
 
@@ -700,14 +703,14 @@ const AdminDashboard = () => {
 
                                 <div className="guideline-item">
                                     <div className="guideline-icon">📊</div>
-                                    <h3>Marks CSV</h3>
+                                    <h3>Marks Upload</h3>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '10px' }}>
+                                        Marks are now uploaded within an <strong>Exam Context</strong> through the Faculty Dashboard.
+                                    </p>
                                     <ul>
-                                        <li><strong>enrollment_number:</strong> Required (Matching Student)</li>
-                                        <li><strong>subject_code:</strong> Required (Matching Subject)</li>
-                                        <li><strong>cie_number:</strong> Required (e.g. 1, 2)</li>
-                                        <li><strong>marks_obtained:</strong> Required (Number)</li>
-                                        <li><strong>max_marks:</strong> Required (Number)</li>
-                                        <li><strong>exam_date:</strong> Optional (YYYY-MM-DD)</li>
+                                        <li><strong>enrollment_number:</strong> Required (Unique ID)</li>
+                                        <li><strong>marks_obtained:</strong> Required (Score)</li>
+                                        <li><strong>Note:</strong> Subject and Max Marks are automatically derived from the selected Exam context.</li>
                                     </ul>
                                 </div>
                             </div>
@@ -945,6 +948,15 @@ const CrudFormComponent = ({ crudModal, crudForm, crudLoading, crudMessage, hand
                             <option value="">Select Batch</option>
                             {batches.map(b => (
                                 <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="form-group-crud">
+                        <label>Current Semester</label>
+                        <select name="current_semester_id" value={crudForm.current_semester_id || ""} onChange={handleCrudFormChange} style={{ outline: "none" }}>
+                            <option value="">Select Semester (Not Set)</option>
+                            {semesters.filter(s => !crudForm.batch_id || s.batch_id === parseInt(crudForm.batch_id)).map(s => (
+                                <option key={s.id} value={s.id}>{s.name} ({batches.find(b => b.id === s.batch_id)?.name})</option>
                             ))}
                         </select>
                     </div>

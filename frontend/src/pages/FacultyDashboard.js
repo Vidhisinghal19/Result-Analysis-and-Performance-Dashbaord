@@ -31,19 +31,32 @@ const FacultyDashboard = () => {
     const [selectedStudentForTrend, setSelectedStudentForTrend] = useState(null);
     const [subjectMentorship, setSubjectMentorship] = useState({});
 
+    // Student Repository
+    const [studentRepository, setStudentRepository] = useState([]);
+    const [repoSearch, setRepoSearch] = useState("");
+    const [expandedRepoPaths, setExpandedRepoPaths] = useState([]);
+    const [repoCourse, setRepoCourse] = useState("");
+    const [repoBatch, setRepoBatch] = useState("");
+    const [repoSem, setRepoSem] = useState("");
+
+
     // Modals & UI
     const [showExamForm, setShowExamForm] = useState(false);
     const [examForm, setExamForm] = useState({ name: "", type: "CIE", max_marks: 100, exam_date: new Date().toISOString().split('T')[0] });
     const [uploadMessage, setUploadMessage] = useState("");
+    const [uploadWarning, setUploadWarning] = useState("");
+
 
     const fetchData = useCallback(async (userId) => {
         try {
-            const [subRes, profileRes] = await Promise.all([
+            const [subRes, profileRes, repoRes] = await Promise.all([
                 axios.get(`${API_BASE}/api/faculty/my-subjects/${userId}`),
-                axios.get(`${API_BASE}/api/faculty/profile/${userId}`)
+                axios.get(`${API_BASE}/api/faculty/profile/${userId}`),
+                axios.get(`${API_BASE}/api/faculty/student-repository/${userId}`)
             ]);
             setSubjects(Array.isArray(subRes.data) ? subRes.data : []);
             setFacultyProfile(profileRes.data);
+            setStudentRepository(Array.isArray(repoRes.data) ? repoRes.data : []);
         } catch (err) { console.error(err); }
     }, []);
 
@@ -154,11 +167,16 @@ const FacultyDashboard = () => {
             formData.append("file", file);
             formData.append("exam_id", selectedExamId);
             const res = await axios.post(`${API_BASE}/api/marks/upload`, formData);
-            setUploadMessage(res.data.message);
+            setUploadMessage(res.data.message || "Upload successful.");
+            setUploadWarning(res.data.warning || "");
             fetchTracker(selectedContext.id);
-        } catch (err) { setUploadMessage("Upload Error"); }
-        finally { setTimeout(() => setUploadMessage(""), 5000); }
+        } catch (err) {
+            setUploadMessage(err.response?.data?.error || "Upload Error. Check file format.");
+        } finally {
+            setTimeout(() => { setUploadMessage(""); setUploadWarning(""); }, 8000);
+        }
     };
+
 
     const analyticalData = useMemo(() => {
         if (!selectedContext || subjectExams.length === 0 || contextStudents.length === 0) return null;
@@ -257,6 +275,9 @@ const FacultyDashboard = () => {
                     <button className={activeTab === "upload" ? "active" : ""} disabled={!selectedContext} onClick={() => setActiveTab("upload")} style={{ opacity: !selectedContext ? 0.4 : 1 }}>📤 Grade Entry</button>
                     <button className={activeTab === "analysis" ? "active" : ""} disabled={!selectedContext} onClick={() => setActiveTab("analysis")} style={{ opacity: !selectedContext ? 0.4 : 1 }}>📊 Analysis</button>
                     <button className={activeTab === "tracking" ? "active" : ""} disabled={!selectedContext} onClick={() => setActiveTab("tracking")} style={{ opacity: !selectedContext ? 0.4 : 1 }}>📉 Student Tracking</button>
+
+                    <div className="nav-group-separator">DIRECTORY</div>
+                    <button className={activeTab === "repository" ? "active" : ""} onClick={() => { setActiveTab("repository"); setSelectedContext(null); }}>🗂️ Student Repository</button>
 
                     <div className="nav-group-separator">ACCOUNT</div>
                     <button className={activeTab === "profile" ? "active" : ""} onClick={() => { setActiveTab("profile"); setSelectedContext(null); }}>👤 My Profile</button>
@@ -363,26 +384,75 @@ const FacultyDashboard = () => {
                 {/* PERFORMANCE TRACKER (HOME FOR SUBJECT) */}
                 {activeTab === "home" && selectedContext && (
                     <section className="tracker-view glass-card" style={{ animation: "slideUp 0.4s ease" }}>
-                        <div className="table-header-p" style={{ padding: "1rem" }}><h3>Assessment Registry</h3></div>
+                        <div className="table-header-p" style={{ padding: "1.5rem 2rem", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0 }}>Assessment Registry</h3>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-dim)' }}>{selectedContext.name} • {selectedContext.batch} • {selectedContext.semester}</p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <span className="badge" style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--accent-primary)' }}>{contextStudents.length} Students</span>
+                                <span className="badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>{subjectExams.length} Exams</span>
+                            </div>
+                        </div>
                         <div className="p-table-wrapper">
-                            {detailsLoading ? <p>Processing matrices...</p> : (
+                            {detailsLoading ? (
+                                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-dim)' }}>⏳ Loading student data...</div>
+                            ) : contextStudents.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-dim)' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
+                                    <strong>No students found for this batch.</strong>
+                                    <p style={{ fontSize: '0.85rem', marginTop: '8px' }}>Ensure students are enrolled with the correct Batch ID via the Admin Dashboard.</p>
+                                </div>
+                            ) : subjectExams.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-dim)' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+                                    <strong>No exams defined yet.</strong>
+                                    <p style={{ fontSize: '0.85rem', marginTop: '8px' }}>Go to the <strong>Exams</strong> tab to create assessment modules for this subject.</p>
+                                </div>
+                            ) : (
                                 <table className="p-table">
-                                    <thead><tr><th>Enrollment</th><th>Name</th>{subjectExams.map(ex => <th key={ex.id}>{ex.name}</th>)}<th>Total %</th></tr></thead>
-                                    <tbody>{contextStudents.map(student => {
-                                        const marks = contextMarks[student.id] || {};
-                                        let obt = 0; let max = 0;
-                                        return (
-                                            <tr key={student.id}>
-                                                <td><strong>{student.enrollment_number}</strong></td>
-                                                <td>{student.name}</td>
-                                                {subjectExams.map(ex => {
-                                                    const m = marks[ex.name]; if (m !== undefined) { obt += m; max += ex.max_marks; }
-                                                    return <td key={ex.id}>{m ?? "-"}</td>
-                                                })}
-                                                <td style={{ fontWeight: "700", color: "var(--accent-primary)" }}>{max > 0 ? ((obt / max) * 100).toFixed(1) + "%" : "-"}</td>
-                                            </tr>
-                                        );
-                                    })}</tbody>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ paddingLeft: '2rem' }}>Enrollment</th>
+                                            <th>Name</th>
+                                            {subjectExams.map(ex => <th key={ex.id}>{ex.name} <span style={{ opacity: 0.5, fontWeight: 400 }}>/{ex.max_marks}</span></th>)}
+                                            <th>Total %</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {contextStudents.map((student, idx) => {
+                                            const marks = contextMarks[student.id] || {};
+                                            let obt = 0; let max = 0;
+                                            const cells = subjectExams.map(ex => {
+                                                const m = marks[ex.name];
+                                                if (m !== undefined) { obt += m; max += ex.max_marks; }
+                                                const color = m === undefined ? 'var(--text-dim)' : m >= ex.max_marks * 0.4 ? '#10b981' : '#f43f5e';
+                                                return <td key={ex.id}><span style={{ fontWeight: 600, color }}>{m !== undefined ? m : '—'}</span></td>;
+                                            });
+                                            const pct = max > 0 ? ((obt / max) * 100).toFixed(1) : null;
+                                            return (
+                                                <tr key={student.id}>
+                                                    <td style={{ paddingLeft: '2rem' }}>
+                                                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-primary)', fontSize: '0.85rem' }}>{student.enrollment_number}</span>
+                                                    </td>
+                                                    <td>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: `hsl(${(idx * 47) % 360}, 60%, 88%)`, color: `hsl(${(idx * 47) % 360}, 60%, 32%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem' }}>
+                                                                {student.name[0].toUpperCase()}
+                                                            </div>
+                                                            <span style={{ fontWeight: 600 }}>{student.name}</span>
+                                                        </div>
+                                                    </td>
+                                                    {cells}
+                                                    <td>
+                                                        {pct !== null
+                                                            ? <span style={{ fontWeight: 800, color: parseFloat(pct) >= 40 ? '#10b981' : '#f43f5e' }}>{pct}%</span>
+                                                            : <span style={{ color: 'var(--text-dim)' }}>No marks</span>}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
                                 </table>
                             )}
                         </div>
@@ -748,6 +818,7 @@ const FacultyDashboard = () => {
                                         Select CSV Record
                                     </label>
                                     {uploadMessage && <div className="glass-card" style={{ marginTop: "1.5rem", padding: "1rem", background: 'rgba(16, 185, 129, 0.1)', color: "#10b981", border: '1px solid #10b981' }}>{uploadMessage}</div>}
+                                    {uploadWarning && <div className="glass-card" style={{ marginTop: "0.75rem", padding: "1rem", background: 'rgba(245, 158, 11, 0.1)', color: "#f59e0b", border: '1px solid #f59e0b', fontSize: '0.85rem' }}>⚠️ {uploadWarning}</div>}
                                 </div>
                             </div>
 
@@ -797,8 +868,202 @@ const FacultyDashboard = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* LIVE MARKS PREVIEW */}
+                        {contextStudents.length > 0 && (
+                            <div style={{ marginTop: '2.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.25rem' }}>
+                                    <h3 style={{ margin: 0 }}>📊 Current Marks Registry</h3>
+                                    <span className="badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>{contextStudents.length} Students</span>
+                                    {uploadMessage && <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>✓ {uploadMessage}</span>}
+                                </div>
+                                <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+                                    <div className="p-table-wrapper">
+                                        <table className="p-table">
+                                            <thead>
+                                                <tr>
+                                                    <th style={{ paddingLeft: '2rem' }}>ENROLLMENT</th>
+                                                    <th>STUDENT NAME</th>
+                                                    {subjectExams.map(ex => <th key={ex.id}>{ex.name} <span style={{ opacity: 0.5, fontWeight: 400 }}>/{ex.max_marks}</span></th>)}
+                                                    <th>TOTAL %</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {contextStudents.map((student, idx) => {
+                                                    const marks = contextMarks[student.id] || {};
+                                                    let obt = 0; let max = 0;
+                                                    subjectExams.forEach(ex => {
+                                                        const m = marks[ex.name];
+                                                        if (m !== undefined) { obt += m; max += ex.max_marks; }
+                                                    });
+                                                    const pct = max > 0 ? ((obt / max) * 100).toFixed(1) : null;
+                                                    return (
+                                                        <tr key={student.id}>
+                                                            <td style={{ paddingLeft: '2rem' }}><span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-primary)', fontSize: '0.85rem' }}>{student.enrollment_number}</span></td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                    <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: `hsl(${(idx * 47) % 360}, 60%, 88%)`, color: `hsl(${(idx * 47) % 360}, 60%, 32%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>{student.name[0].toUpperCase()}</div>
+                                                                    <span style={{ fontWeight: 600 }}>{student.name}</span>
+                                                                </div>
+                                                            </td>
+                                                            {subjectExams.map(ex => {
+                                                                const m = marks[ex.name];
+                                                                const color = m === undefined ? 'var(--text-dim)' : m >= ex.max_marks * 0.4 ? '#10b981' : '#f43f5e';
+                                                                return <td key={ex.id}><span style={{ fontWeight: 700, color }}>{m !== undefined ? m : '—'}</span></td>;
+                                                            })}
+                                                            <td>{pct !== null ? <span style={{ fontWeight: 800, color: parseFloat(pct) >= 40 ? '#10b981' : '#f43f5e' }}>{pct}%</span> : <span style={{ color: 'var(--text-dim)' }}>—</span>}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                     </section>
                 )}
+                {/* STUDENT REPOSITORY — TABLE FORMAT WITH FILTERS */}
+                {activeTab === "repository" && (() => {
+                    // Flatten all students from the hierarchy, enriched with context
+                    const allRows = [];
+                    studentRepository.forEach(course => {
+                        Object.values(course.batches).forEach(batch => {
+                            Object.values(batch.semesters).forEach(sem => {
+                                sem.students.forEach(st => {
+                                    allRows.push({
+                                        ...st,
+                                        course: course.name,
+                                        course_id: course.id,
+                                        batch: batch.name,
+                                        batch_id: batch.id,
+                                        semester: sem.name,
+                                        semester_id: sem.id,
+                                        subjects: sem.subjects.map(s => s.code).join(', ')
+                                    });
+                                });
+                            });
+                        });
+                    });
+
+                    // Unique filter options derived from data
+                    const courses    = [...new Map(allRows.map(r => [r.course_id, r.course])).entries()];
+                    const batchesFor = [...new Map(allRows.filter(r => !repoCourse || String(r.course_id) === repoCourse).map(r => [r.batch_id, r.batch])).entries()];
+                    const semsFor    = [...new Map(allRows.filter(r => (!repoCourse || String(r.course_id) === repoCourse) && (!repoBatch || String(r.batch_id) === repoBatch)).map(r => [r.semester_id, r.semester])).entries()];
+
+                    const filtered = allRows.filter(r =>
+                        (!repoCourse || String(r.course_id) === repoCourse) &&
+                        (!repoBatch  || String(r.batch_id)  === repoBatch) &&
+                        (!repoSem    || String(r.semester_id) === repoSem) &&
+                        (repoSearch === "" || r.name.toLowerCase().includes(repoSearch.toLowerCase()) || r.enrollment_number.toLowerCase().includes(repoSearch.toLowerCase()))
+                    );
+
+                    // De-duplicate by student id
+                    const seen = new Set();
+                    const unique = filtered.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
+
+                    return (
+                        <section style={{ animation: "slideUp 0.4s ease" }}>
+                            <div style={{ marginBottom: '2rem' }}>
+                                <h1 style={{ margin: 0, fontSize: '1.75rem' }}>🗂️ Student Repository</h1>
+                                <p style={{ margin: '5px 0 0', color: 'var(--text-dim)', fontSize: '0.9rem' }}>
+                                    Complete institutional directory of all students under your teaching portfolio.
+                                </p>
+                            </div>
+
+                            {/* FILTER BAR */}
+                            <div className="glass-card" style={{ padding: '1.5rem 2rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '200px' }}>
+                                    <span style={{ fontSize: '1.1rem' }}>🏢</span>
+                                    <select value={repoCourse} onChange={e => { setRepoCourse(e.target.value); setRepoBatch(""); setRepoSem(""); }}
+                                        style={{ flex: 1, padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid var(--border-card)', background: 'white', fontWeight: 600 }}>
+                                        <option value="">All Programs</option>
+                                        {courses.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                                    </select>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '180px' }}>
+                                    <span style={{ fontSize: '1.1rem' }}>📅</span>
+                                    <select value={repoBatch} onChange={e => { setRepoBatch(e.target.value); setRepoSem(""); }} disabled={!repoCourse}
+                                        style={{ flex: 1, padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid var(--border-card)', background: 'white', fontWeight: 600, opacity: !repoCourse ? 0.5 : 1 }}>
+                                        <option value="">All Batches</option>
+                                        {batchesFor.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                                    </select>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '180px' }}>
+                                    <span style={{ fontSize: '1.1rem' }}>🎓</span>
+                                    <select value={repoSem} onChange={e => setRepoSem(e.target.value)} disabled={!repoBatch}
+                                        style={{ flex: 1, padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid var(--border-card)', background: 'white', fontWeight: 600, opacity: !repoBatch ? 0.5 : 1 }}>
+                                        <option value="">All Semesters</option>
+                                        {semsFor.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                                    </select>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 2, minWidth: '220px' }}>
+                                    <input type="text" placeholder="🔍  Name or Enrollment No." value={repoSearch} onChange={e => setRepoSearch(e.target.value)}
+                                        style={{ flex: 1, padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid var(--border-card)', background: 'white', fontWeight: 500 }} />
+                                </div>
+                                {(repoCourse || repoBatch || repoSem || repoSearch) && (
+                                    <button onClick={() => { setRepoCourse(""); setRepoBatch(""); setRepoSem(""); setRepoSearch(""); }}
+                                        style={{ padding: '0.7rem 1.2rem', borderRadius: '10px', border: 'none', background: 'rgba(244,63,94,0.1)', color: '#f43f5e', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                        ✕ Clear
+                                    </button>
+                                )}
+                            </div>
+
+                            <div style={{ marginBottom: '1rem' }}>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+                                    Showing <strong style={{ color: 'var(--text-main)' }}>{unique.length}</strong> of <strong style={{ color: 'var(--text-main)' }}>{allRows.length}</strong> enrolled students
+                                </span>
+                            </div>
+
+                            <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+                                <div className="p-table-wrapper">
+                                    <table className="p-table">
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: '50px', paddingLeft: '2rem' }}>#</th>
+                                                <th>STUDENT</th>
+                                                <th>ENROLLMENT NO.</th>
+                                                <th>EMAIL</th>
+                                                <th>PROGRAM</th>
+                                                <th>BATCH</th>
+                                                <th>SEMESTER</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {unique.length > 0 ? unique.map((st, idx) => (
+                                                <tr key={`${st.id}-${st.semester_id}`}>
+                                                    <td style={{ paddingLeft: '2rem', color: 'var(--text-dim)', fontWeight: 600 }}>{idx + 1}</td>
+                                                    <td>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `hsl(${(idx * 47) % 360}, 60%, 88%)`, color: `hsl(${(idx * 47) % 360}, 60%, 32%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.9rem', flexShrink: 0 }}>
+                                                                {st.name[0].toUpperCase()}
+                                                            </div>
+                                                            <span style={{ fontWeight: 700 }}>{st.name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td><span style={{ fontFamily: 'monospace', fontWeight: 800, color: 'var(--accent-primary)', letterSpacing: '1px', fontSize: '0.85rem' }}>{st.enrollment_number}</span></td>
+                                                    <td style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{st.email}</td>
+                                                    <td><span className="badge" style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--accent-primary)' }}>{st.course}</span></td>
+                                                    <td><span className="badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>{st.batch}</span></td>
+                                                    <td><span className="badge" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>{st.semester}</span></td>
+                                                </tr>
+                                            )) : (
+                                                <tr>
+                                                    <td colSpan="7" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-dim)' }}>
+                                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
+                                                        No students match the selected filters.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    );
+                })()}
+
                 {activeTab === "profile" && facultyProfile && (
                     <section className="profile-view" style={{ animation: "slideUp 0.4s ease" }}>
                         <div className="glass-card" style={{ maxWidth: '800px', margin: '0 auto', padding: '3rem' }}>
