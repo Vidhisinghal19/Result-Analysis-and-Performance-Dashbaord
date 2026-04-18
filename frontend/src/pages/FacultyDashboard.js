@@ -14,6 +14,7 @@ const FacultyDashboard = () => {
     const [user, setUser] = useState(null);
     const [activeTab, setActiveTab] = useState("home");
     const [subjects, setSubjects] = useState([]);
+    const [facultyProfile, setFacultyProfile] = useState(null);
 
     // Sidebar & Context State
     const [selectedContext, setSelectedContext] = useState(null);
@@ -37,8 +38,12 @@ const FacultyDashboard = () => {
 
     const fetchData = useCallback(async (userId) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/faculty/my-subjects/${userId}`);
-            setSubjects(Array.isArray(res.data) ? res.data : []);
+            const [subRes, profileRes] = await Promise.all([
+                axios.get(`${API_BASE}/api/faculty/my-subjects/${userId}`),
+                axios.get(`${API_BASE}/api/faculty/profile/${userId}`)
+            ]);
+            setSubjects(Array.isArray(subRes.data) ? subRes.data : []);
+            setFacultyProfile(profileRes.data);
         } catch (err) { console.error(err); }
     }, []);
 
@@ -252,6 +257,9 @@ const FacultyDashboard = () => {
                     <button className={activeTab === "upload" ? "active" : ""} disabled={!selectedContext} onClick={() => setActiveTab("upload")} style={{ opacity: !selectedContext ? 0.4 : 1 }}>📤 Grade Entry</button>
                     <button className={activeTab === "analysis" ? "active" : ""} disabled={!selectedContext} onClick={() => setActiveTab("analysis")} style={{ opacity: !selectedContext ? 0.4 : 1 }}>📊 Analysis</button>
                     <button className={activeTab === "tracking" ? "active" : ""} disabled={!selectedContext} onClick={() => setActiveTab("tracking")} style={{ opacity: !selectedContext ? 0.4 : 1 }}>📉 Student Tracking</button>
+
+                    <div className="nav-group-separator">ACCOUNT</div>
+                    <button className={activeTab === "profile" ? "active" : ""} onClick={() => { setActiveTab("profile"); setSelectedContext(null); }}>👤 My Profile</button>
 
                     <button onClick={logout} className="btn-logout" style={{ marginTop: "2rem" }}>Logout</button>
                 </nav>
@@ -615,6 +623,64 @@ const FacultyDashboard = () => {
                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                                         Double-check that the enrollment numbers exist in the system before uploading. Duplicate entries for the same student will overwrite previous scores.
                                     </p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
+                {activeTab === "profile" && facultyProfile && (
+                    <section className="profile-view" style={{ animation: "slideUp 0.4s ease" }}>
+                        <div className="glass-card" style={{ maxWidth: '800px', margin: '0 auto', padding: '3rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '3rem', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '2rem' }}>
+                                <div className="profile-avatar" style={{ width: '100px', height: '100px', fontSize: '2.5rem' }}>
+                                    {facultyProfile.name?.[0].toUpperCase()}
+                                </div>
+                                <div>
+                                    <h1 style={{ margin: 0, fontSize: '2.2rem' }}>{facultyProfile.name}</h1>
+                                    <p style={{ margin: '5px 0 0', color: 'var(--accent-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                        Registered Faculty Member
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+                                <div className="info-group">
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, marginBottom: '8px' }}>FULL NAME</label>
+                                    <div className="glass-card" style={{ padding: '1rem', background: 'rgba(0,0,0,0.02)' }}>{facultyProfile.name}</div>
+                                </div>
+                                <div className="info-group">
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, marginBottom: '8px' }}>EMAIL ADDRESS</label>
+                                    <div className="glass-card" style={{ padding: '1rem', background: 'rgba(0,0,0,0.02)' }}>{facultyProfile.email}</div>
+                                </div>
+                                <div className="info-group">
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, marginBottom: '8px' }}>DEPARTMENT</label>
+                                    <div className="glass-card" style={{ padding: '1rem', background: 'rgba(0,0,0,0.02)' }}>{facultyProfile.department || "Not Assigned"}</div>
+                                </div>
+                                <div className="info-group">
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, marginBottom: '8px' }}>EMPLOYEE ID</label>
+                                    <div className="glass-card" style={{ 
+                                        padding: '1rem', 
+                                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05))',
+                                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                    }}>
+                                        <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1.2rem', color: 'var(--accent-primary)', letterSpacing: '2px' }}>
+                                            FAC-{facultyProfile.id.toString().padStart(4, '0')}
+                                        </span>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '4px 8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '6px' }}>
+                                            ✓ VERIFIED
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="info-alert" style={{ marginTop: '3rem', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '15px' }}>
+                                <span style={{ fontSize: '1.5rem' }}>ℹ️</span>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Read-Only Mode</h4>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Profile details are managed by the institutional administrator. Please contact the IT department for any corrections.</p>
                                 </div>
                             </div>
                         </div>

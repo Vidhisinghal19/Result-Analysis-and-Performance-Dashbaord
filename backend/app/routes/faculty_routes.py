@@ -14,6 +14,16 @@ from app.models.mentorship import Mentorship
 
 faculty_bp = Blueprint('faculty', __name__, url_prefix='/api/faculty')
 
+@faculty_bp.route('/profile/<int:user_id>', methods=['GET'])
+def get_faculty_profile(user_id):
+    try:
+        faculty = Faculty.query.filter_by(user_id=user_id).first()
+        if not faculty:
+            return jsonify({"error": "Faculty not found"}), 404
+        return jsonify(faculty.to_dict()), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @faculty_bp.route('/my-subjects/<int:user_id>', methods=['GET'])
 def get_my_subjects(user_id):
     try:
