@@ -20,7 +20,8 @@ function StudentDashboard() {
     const [results, setResults] = useState([]);
     const [hierarchy, setHierarchy] = useState(null);
     const [selectedSubject, setSelectedSubject] = useState(null);
-    const [subjectPerformance, setSubjectPerformance] = useState({ marks: [], mentorship: {} });
+    const [subjectPerformance, setSubjectPerformance] = useState([]);
+    const [mentorship, setMentorship] = useState(null);
     const [loading, setLoading] = useState(true);
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -90,11 +91,22 @@ function StudentDashboard() {
         if (!user) return;
         setDetailsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/student/subject-performance/${user.id}/${subjectId}`);
-            if (res.ok) {
-                const data = await res.json();
-                setSubjectPerformance(data);
+            const [perfRes, mentorRes] = await Promise.all([
+                fetch(`${API_BASE}/api/student/subject-performance/${user.id}/${subjectId}`),
+                fetch(`${API_BASE}/api/student/mentorship-feedback/${user.id}/${subjectId}`)
+            ]);
+            
+            if (perfRes.ok) {
+                const perfData = await perfRes.json();
+                setSubjectPerformance(perfData);
                 setActiveTab("analysis");
+            }
+            
+            if (mentorRes.ok) {
+                const mentorData = await mentorRes.json();
+                setMentorship(mentorData);
+            } else {
+                setMentorship(null);
             }
         } catch (err) { console.error("Subject details fetch error:", err); }
         finally { setDetailsLoading(false); }
@@ -346,6 +358,33 @@ function StudentDashboard() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {mentorship && (
+                                    <div className="glass-card" style={{ padding: '2.5rem', background: 'rgba(255, 255, 255, 0.6)', border: '1px solid var(--accent-primary)', marginBottom: '2rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                            <h3 style={{ margin: 0 }}>🧠 Faculty Mentorship & Feedback</h3>
+                                            <span className="badge-p" style={{ 
+                                                background: 'var(--accent-primary)', 
+                                                color: 'white',
+                                                padding: '0.5rem 1rem',
+                                                borderRadius: '10px'
+                                            }}>
+                                                {mentorship.performance_rating}
+                                            </span>
+                                        </div>
+                                        
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
+                                            <div>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.6, display: 'block', marginBottom: '8px' }}>FACULTY REMARKS</label>
+                                                <p style={{ fontWeight: 700, fontSize: '1.1rem', margin: 0 }}>{mentorship.remarks || "No specific remarks provided."}</p>
+                                            </div>
+                                            <div>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.6, display: 'block', marginBottom: '8px' }}>DETAILED GUIDANCE</label>
+                                                <p style={{ margin: 0, lineHeight: '1.6', fontSize: '0.95rem' }}>{mentorship.feedback || "Your faculty will provide detailed guidance here soon."}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="glass-card" style={{ padding: '2.5rem', background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', color: 'white', display: 'grid', gridTemplateColumns: subjectPerformance.mentorship?.rating ? '1fr 1fr' : '1fr', gap: '2rem' }}>
                                     <div>

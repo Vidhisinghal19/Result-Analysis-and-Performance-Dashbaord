@@ -91,17 +91,18 @@ const FacultyDashboard = () => {
         finally { setDetailsLoading(false); }
     }, []);
 
-    const handleSaveMentorship = async (studentId, field, value) => {
+    const handleSaveMentorship = async (studentId, dataObject) => {
         try {
             const payload = {
                 user_id: user.id,
                 student_id: studentId,
                 subject_id: selectedContext.id,
-                [field]: value
+                ...dataObject
             };
             const res = await axios.post(`${API_BASE}/api/faculty/mentorship`, payload);
             setSubjectMentorship(prev => ({ ...prev, [studentId]: res.data }));
-        } catch (err) { console.error("Mentorship save error:", err); }
+            alert("Mentoring records synchronized successfully.");
+        } catch (err) { console.error("Mentorship save error:", err); alert("Failed to save changes."); }
     };
 
     useEffect(() => {
@@ -557,8 +558,8 @@ const FacultyDashboard = () => {
                                                         <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>PERFORMANCE RATING</label>
                                                         <select
                                                             value={subjectMentorship[selectedStudentForTrend.id]?.performance_rating || ""}
-                                                            onChange={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'performance_rating', e.target.value)}
-                                                            style={{ width: '100%', padding: '10px', borderRadius: '10px', background: 'white' }}
+                                                            onChange={(e) => handleSaveMentorship(selectedStudentForTrend.id, { performance_rating: e.target.value })}
+                                                            style={{ width: '100%', padding: '10px', borderRadius: '10px', background: 'white', border: '1px solid #ddd' }}
                                                         >
                                                             <option value="">Select Category</option>
                                                             <option value="Excellent">🌟 Excellent (Exceeds Expectations)</option>
@@ -572,23 +573,37 @@ const FacultyDashboard = () => {
                                                     <div style={{ marginBottom: '1.2rem' }}>
                                                         <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>CORE REMARKS</label>
                                                         <input
+                                                            key={`remarks-${selectedStudentForTrend.id}`}
                                                             type="text"
                                                             placeholder="Short feedback (e.g. Strong in logic)"
                                                             defaultValue={subjectMentorship[selectedStudentForTrend.id]?.remarks || ""}
-                                                            onBlur={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'remarks', e.target.value)}
-                                                            style={{ width: '100%', padding: '10px' }}
+                                                            id={`remarks-input-${selectedStudentForTrend.id}`}
+                                                            style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #ddd' }}
                                                         />
                                                     </div>
 
-                                                    <div>
+                                                    <div style={{ marginBottom: '1.5rem' }}>
                                                         <label style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.7, display: 'block', marginBottom: '8px' }}>DETAILED FEEDBACK</label>
                                                         <textarea
+                                                            key={`feedback-${selectedStudentForTrend.id}`}
                                                             placeholder="Write personalized guidance for the student..."
                                                             defaultValue={subjectMentorship[selectedStudentForTrend.id]?.feedback || ""}
-                                                            onBlur={(e) => handleSaveMentorship(selectedStudentForTrend.id, 'feedback', e.target.value)}
-                                                            style={{ width: '100%', padding: '10px', minHeight: '100px' }}
+                                                            id={`feedback-input-${selectedStudentForTrend.id}`}
+                                                            style={{ width: '100%', padding: '10px', minHeight: '120px', borderRadius: '10px', border: '1px solid #ddd' }}
                                                         />
                                                     </div>
+
+                                                    <button 
+                                                        className="btn-save" 
+                                                        style={{ width: '100%', padding: '12px', borderRadius: '12px' }}
+                                                        onClick={() => {
+                                                            const remarks = document.getElementById(`remarks-input-${selectedStudentForTrend.id}`).value;
+                                                            const feedback = document.getElementById(`feedback-input-${selectedStudentForTrend.id}`).value;
+                                                            handleSaveMentorship(selectedStudentForTrend.id, { remarks, feedback });
+                                                        }}
+                                                    >
+                                                        Save Academic Feedback
+                                                    </button>
                                                 </div>
 
                                                 <div className="glass-card" style={{ padding: '1.5rem', background: 'var(--accent-primary)', color: 'white' }}>

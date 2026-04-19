@@ -62,7 +62,12 @@ def students_list():
     from app.models.batch import Batch
     from app.models.course import Course
     try:
-        # Start from Student table so we never miss a student record
+        page = int(request.args.get('page', 1))
+        search = request.args.get('search', '').strip()
+        course_id = request.args.get('course_id')
+        batch_id = request.args.get('batch_id')
+        semester_id = request.args.get('semester_id')
+
         query = db.session.query(
             Student.id,
             Student.enrollment_number,
@@ -72,40 +77,62 @@ def students_list():
             User.email,
             Batch.name.label('batch'),
             Course.name.label('course'),
-            Semester.name.label('sem_name')
+            Semester.name.label('sem_name'),
+            Batch.id.label('b_id'),
+            Course.id.label('c_id')
         ).join(User, Student.user_id == User.id)\
          .outerjoin(Batch, Student.batch_id == Batch.id)\
          .outerjoin(Course, Batch.course_id == Course.id)\
          .outerjoin(Semester, Student.current_semester_id == Semester.id)
 
-        def student_search(q, s):
-            return q.filter(db.or_(
-                User.name.ilike(f'%{s}%'),
-                User.email.ilike(f'%{s}%'),
-                Student.enrollment_number.ilike(f'%{s}%')
+        if search:
+            query = query.filter(db.or_(
+                User.name.ilike(f'%{search}%'),
+                User.email.ilike(f'%{search}%'),
+                Student.enrollment_number.ilike(f'%{search}%')
             ))
+        
+        if course_id: query = query.filter(Course.id == course_id)
+        if batch_id: query = query.filter(Batch.id == batch_id)
+        if semester_id: query = query.filter(Semester.id == semester_id)
 
-        return paginate_query(query, lambda r: {
-            'id': r.user_id,
-            'student_id': r.id,
-            'name': r.name,
-            'email': r.email,
-            'enrollment_number': r.enrollment_number,
-            'course': r.course or 'N/A',
-            'batch': r.batch or 'N/A',
-            'current_semester_id': r.current_semester_id,
-            'current_semester': r.sem_name or 'Not Set'
-        }, student_search)
+        total = query.count()
+        rows = query.offset((page - 1) * 10).limit(10).all()
+
+        return jsonify({
+            'data': [{
+                'id': r.user_id,
+                'student_id': r.id,
+                'name': r.name,
+                'email': r.email,
+                'enrollment_number': r.enrollment_number,
+                'course': r.course or 'N/A',
+                'batch': r.batch or 'N/A',
+                'current_semester_id': r.current_semester_id,
+                'current_semester': r.sem_name or 'Not Set'
+            } for r in rows],
+            'total': total,
+            'pages': max(1, (total + 9) // 10),
+            'page': page
+        })
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @dashboard_bp.route('/faculty-list', methods=['GET'])
 def faculty_list():
+    dept = request.args.get('department', '').strip()
     query = db.session.query(User.id, User.name, User.email, Faculty.department).join(Faculty, Faculty.user_id == User.id)
     def faculty_search(q, s):
-        return q.filter(db.or_(User.name.ilike(f'%{s}%'), User.email.ilike(f'%{s}%')))
+        res = q.filter(db.or_(User.name.ilike(f'%{s}%'), User.email.ilike(f'%{s}%')))
+        if dept: res = res.filter(Faculty.department == dept)
+        return res
     
+    # Check for direct filter if no search
+    search = request.args.get('search', '').strip()
+    if dept and not search:
+        query = query.filter(Faculty.department == dept)
+        
     return paginate_query(query, lambda r: {'id': r.id, 'name': r.name, 'email': r.email, 'department': r.department}, faculty_search)
 
 @dashboard_bp.route('/all-faculty', methods=['GET'])
@@ -119,8 +146,10 @@ def all_faculty():
 def users_list():
     page = int(request.args.get('page', 1))
     search = request.args.get('search', '').strip()
+    role = request.args.get('role', '').strip()
     query = User.query
     if search: query = query.filter(db.or_(User.name.ilike(f'%{search}%'), User.email.ilike(f'%{search}%')))
+    if role: query = query.filter(User.role == role)
     total = query.count()
     rows = query.offset((page - 1) * 10).limit(10).all()
     return jsonify({'data': [{'id': u.id, 'name': u.name, 'email': u.email, 'role': u.role} for u in rows], 'total': total, 'pages': max(1, (total + 9) // 10), 'page': page})
@@ -129,6 +158,10 @@ def users_list():
 def subjects_list():
     page = int(request.args.get('page', 1))
     search = request.args.get('search', '').strip()
+    faculty_id = request.args.get('faculty_id')
+    semester_id = request.args.get('semester_id')
+    batch_id = request.args.get('batch_id')
+
     query = db.session.query(
         Subject.id, Subject.name, Subject.code,
         Subject.faculty_id, Subject.semester_id,
@@ -137,7 +170,12 @@ def subjects_list():
     ).outerjoin(Faculty, Subject.faculty_id == Faculty.id)\
      .outerjoin(User, Faculty.user_id == User.id)\
      .outerjoin(Semester, Subject.semester_id == Semester.id)
+    
     if search: query = query.filter(db.or_(Subject.name.ilike(f'%{search}%'), Subject.code.ilike(f'%{search}%')))
+    if faculty_id: query = query.filter(Subject.faculty_id == faculty_id)
+    if semester_id: query = query.filter(Subject.semester_id == semester_id)
+    if batch_id: query = query.filter(Semester.batch_id == batch_id)
+
     total = query.count()
     rows = query.offset((page - 1) * 10).limit(10).all()
     return jsonify({
@@ -167,12 +205,18 @@ def courses_list():
 def batches_list():
     from app.models.batch import Batch
     from app.models.course import Course
+    course_id = request.args.get('course_id')
     query = db.session.query(Batch.id, Batch.name, Batch.start_year, Batch.end_year, Course.name.label('course_name'))\
         .join(Course, Batch.course_id == Course.id)
     
     def batch_search(q, s):
-        return q.filter(db.or_(Batch.name.ilike(f'%{s}%'), Course.name.ilike(f'%{s}%')))
+        res = q.filter(db.or_(Batch.name.ilike(f'%{s}%'), Course.name.ilike(f'%{s}%')))
+        if course_id: res = res.filter(Batch.course_id == course_id)
+        return res
     
+    if course_id and not request.args.get('search'):
+        query = query.filter(Batch.course_id == course_id)
+        
     return paginate_query(query, lambda r: {
         'id': r.id, 'name': r.name, 'start_year': r.start_year, 'end_year': r.end_year, 'course': r.course_name
     }, batch_search)

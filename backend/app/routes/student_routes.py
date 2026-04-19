@@ -193,3 +193,19 @@ def get_subject_performance(user_id, subject_id):
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@student_bp.route('/mentorship-feedback/<int:user_id>/<int:subject_id>', methods=['GET'])
+def get_mentorship_feedback(user_id, subject_id):
+    try:
+        student = Student.query.filter_by(user_id=user_id).first()
+        if not student:
+            return jsonify({"error": "Student not found"}), 404
+
+        from app.models.mentorship import Mentorship
+        record = Mentorship.query.filter_by(student_id=student.id, subject_id=subject_id).first()
+        if not record:
+            return jsonify(None), 200 # Return null if no record exists
+            
+        return jsonify(record.to_dict()), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

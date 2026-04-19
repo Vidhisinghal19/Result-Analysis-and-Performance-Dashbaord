@@ -11,7 +11,7 @@ const API_BASE = "http://127.0.0.1:5001";
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [activeTab, setActiveTab] = useState("students");
+    const [activeTab, setActiveTab] = useState("overview");
 
     // Upload state
     const [uploadUserLoading, setUploadUserLoading] = useState(false);
@@ -42,6 +42,16 @@ const AdminDashboard = () => {
     const [searchSubject, setSearchSubject] = useState("");
     const [searchCourse, setSearchCourse] = useState("");
     const [searchBatch, setSearchBatch] = useState("");
+    const [searchUser, setSearchUser] = useState("");
+
+    // Filters
+    const [fStudentCourse, setFStudentCourse] = useState("");
+    const [fStudentBatch, setFStudentBatch] = useState("");
+    const [fFacultyDept, setFFacultyDept] = useState("");
+    const [fSubjectSem, setFSubjectSem] = useState("");
+    const [fSubjectFaculty, setFSubjectFaculty] = useState("");
+    const [fUserRole, setFUserRole] = useState("");
+    const [fBatchCourse, setFBatchCourse] = useState("");
     const [pageStudent, setPageStudent] = useState(1);
     const [pageFaculty, setPageFaculty] = useState(1);
     const [pageUser, setPageUser] = useState(1);
@@ -71,31 +81,31 @@ const AdminDashboard = () => {
 
     const fetchStudentsData = useCallback(async (page) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/dashboard/students-list?page=${page}&search=${searchStudent}`);
+            const res = await axios.get(`${API_BASE}/api/dashboard/students-list?page=${page}&search=${searchStudent}&course_id=${fStudentCourse}&batch_id=${fStudentBatch}`);
             setStudents(res.data.data); setTotalPagesStudent(res.data.pages); setPageStudent(page);
         } catch (_) { }
-    }, [searchStudent]);
+    }, [searchStudent, fStudentCourse, fStudentBatch]);
 
     const fetchFacultyData = useCallback(async (page) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/dashboard/faculty-list?page=${page}&search=${searchFaculty}`);
+            const res = await axios.get(`${API_BASE}/api/dashboard/faculty-list?page=${page}&search=${searchFaculty}&department=${fFacultyDept}`);
             setFaculty(res.data.data); setTotalPagesFaculty(res.data.pages); setPageFaculty(page);
         } catch (_) { }
-    }, [searchFaculty]);
+    }, [searchFaculty, fFacultyDept]);
 
     const fetchUsersData = useCallback(async (page) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/dashboard/users?page=${page}`);
+            const res = await axios.get(`${API_BASE}/api/dashboard/users?page=${page}&search=${searchUser}&role=${fUserRole}`);
             setUsers(res.data.data); setTotalPagesUser(res.data.pages); setPageUser(page);
         } catch (_) { }
-    }, []);
+    }, [searchUser, fUserRole]);
 
     const fetchSubjectsData = useCallback(async (page) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/dashboard/subjects-list?page=${page}&search=${searchSubject}`);
+            const res = await axios.get(`${API_BASE}/api/dashboard/subjects-list?page=${page}&search=${searchSubject}&faculty_id=${fSubjectFaculty}&semester_id=${fSubjectSem}`);
             setSubjects(res.data.data); setTotalPagesSubject(res.data.pages); setPageSubject(page);
         } catch (_) { }
-    }, [searchSubject]);
+    }, [searchSubject, fSubjectFaculty, fSubjectSem]);
 
     const fetchAllFaculty = useCallback(async () => {
         try {
@@ -127,10 +137,10 @@ const AdminDashboard = () => {
 
     const fetchBatchesListData = useCallback(async (page) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/dashboard/batches-list?page=${page}&search=${searchBatch}`);
+            const res = await axios.get(`${API_BASE}/api/dashboard/batches-list?page=${page}&search=${searchBatch}&course_id=${fBatchCourse}`);
             setBatchesList(res.data.data); setTotalPagesBatch(res.data.pages); setPageBatch(page);
         } catch (_) { }
-    }, [searchBatch]);
+    }, [searchBatch, fBatchCourse]);
 
     const fetchSemesters = useCallback(async () => {
         try {
@@ -157,6 +167,17 @@ const AdminDashboard = () => {
             fetchCoursesListData(1); fetchBatchesListData(1); fetchAllCourses();
         } catch (err) { console.error("Dashboard fetch error:", err); }
     }, [fetchStudentsData, fetchFacultyData, fetchUsersData, fetchSubjectsData, fetchAllFaculty, fetchBatches, fetchSemesters, fetchCoursesListData, fetchBatchesListData, fetchAllCourses]);
+
+    useEffect(() => {
+        if (activeTab === "students") fetchStudentsData(1);
+        if (activeTab === "faculty") fetchFacultyData(1);
+        if (activeTab === "subjects") fetchSubjectsData(1);
+        if (activeTab === "users") fetchUsersData(1);
+        if (activeTab === "batches") fetchBatchesListData(1);
+        if (activeTab === "courses") fetchCoursesListData(1);
+    }, [activeTab, searchStudent, searchFaculty, searchSubject, searchCourse, searchBatch, searchUser,
+        fStudentCourse, fStudentBatch, fFacultyDept, fSubjectSem, fSubjectFaculty, fUserRole, fBatchCourse,
+        fetchStudentsData, fetchFacultyData, fetchSubjectsData, fetchUsersData, fetchBatchesListData, fetchCoursesListData]);
 
     useEffect(() => {
         const userData = localStorage.getItem("user");
@@ -523,47 +544,90 @@ const AdminDashboard = () => {
             {/* SIDEBAR */}
             <aside className="sidebar">
                 <div className="sidebar-logo">
-                    <span className="logo-icon"></span>
-                    <h2>JIMS ROHINI</h2>
+                    <span className="logo-icon">J</span>
+                    <h2>ADMIN PANEL</h2>
                 </div>
                 <nav className="sidebar-nav">
-                    {[
-                        { id: "students", icon: "🎓", label: "Students" },
-                        { id: "faculty", icon: "👨‍🏫", label: "Faculty" },
-                        { id: "subjects", icon: "📘", label: "Subjects" },
-                        { id: "courses", icon: "🏫", label: "Courses" },
-                        { id: "batches", icon: "📅", label: "Batches" },
-                        { id: "users", icon: "👥", label: "Users" },
-                        { id: "guidelines", icon: "📋", label: "CSV Guidelines" },
-                        { id: "profile", icon: "✏️", label: "Edit Profile" },
-                    ].map(({ id, icon, label }) => (
-                        <button key={id} className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)}>
-                            <span className="nav-icon">{icon}</span> {label}
+                    <div className="nav-group-separator">CORE</div>
+                    <button className={activeTab === "overview" ? "active" : ""} onClick={() => setActiveTab("overview")}>
+                        <span className="nav-icon">🏠</span> Dashboard
+                    </button>
+                    <button className={activeTab === "analytics" ? "active" : ""} onClick={() => setActiveTab("analytics")}>
+                        <span className="nav-icon">📊</span> Analytics
+                    </button>
+
+                    <div className="nav-group-separator">MANAGEMENT</div>
+                    <button className={activeTab === "students" ? "active" : ""} onClick={() => setActiveTab("students")}>
+                        <span className="nav-icon">🎓</span> Students
+                    </button>
+                    <button className={activeTab === "faculty" ? "active" : ""} onClick={() => setActiveTab("faculty")}>
+                        <span className="nav-icon">👨‍🏫</span> Faculty
+                    </button>
+                    <button className={activeTab === "subjects" ? "active" : ""} onClick={() => setActiveTab("subjects")}>
+                        <span className="nav-icon">📘</span> Subjects
+                    </button>
+                    <button className={activeTab === "users" ? "active" : ""} onClick={() => setActiveTab("users")}>
+                        <span className="nav-icon">👥</span> User Access
+                    </button>
+
+                    <div className="nav-group-separator">CONFIGURATION</div>
+                    <button className={activeTab === "courses" ? "active" : ""} onClick={() => setActiveTab("courses")}>
+                        <span className="nav-icon">🏫</span> Courses
+                    </button>
+                    <button className={activeTab === "batches" ? "active" : ""} onClick={() => setActiveTab("batches")}>
+                        <span className="nav-icon">📅</span> Batches
+                    </button>
+
+                    <div className="nav-group-separator">RESOURCES</div>
+                    <button className={activeTab === "uploads" ? "active" : ""} onClick={() => setActiveTab("uploads")}>
+                        <span className="nav-icon">📤</span> Bulk Upload
+                    </button>
+                    <button className={activeTab === "guidelines" ? "active" : ""} onClick={() => setActiveTab("guidelines")}>
+                        <span className="nav-icon">📋</span> Instructions
+                    </button>
+
+                    <div className="nav-group-separator">PREFERENCES</div>
+                    <button className={activeTab === "profile" ? "active" : ""} onClick={() => setActiveTab("profile")}>
+                        <span className="nav-icon">👤</span> My Profile
+                    </button>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
+                        <button onClick={logout} className="btn-logout">
+                            <span>🚪</span> Logout
                         </button>
-                    ))}
+                    </div>
                 </nav>
-                <div className="sidebar-footer">
-                    <button onClick={logout} className="btn-logout">Logout</button>
-                </div>
             </aside>
 
             {/* MAIN */}
             <main className="main-content">
                 <header className="main-header">
                     <div className="header-info">
-                        <h1>{activeTab === "profile" ? "Edit Profile" : activeTab === "guidelines" ? "Upload Guidelines" : "Admin Overview"}</h1>
-                        <p>
-                            {activeTab === "profile" ? "Manage your account details and password" :
-                                activeTab === "guidelines" ? "Instructions for CSV data preparation and bulk uploads" :
-                                    "Real-time system analytics and management"}
-                        </p>
+                        <h1>{
+                            activeTab === "overview" ? "Admin Command Center" :
+                                activeTab === "analytics" ? "System Analytics" :
+                                    activeTab === "profile" ? "Edit Profile" :
+                                        activeTab === "guidelines" ? "Upload Guidelines" :
+                                            activeTab === "uploads" ? "Bulk Upload" :
+                                                "Data Repository"
+                        }</h1>
+                        <p>{
+                            activeTab === "overview" ? "Real-time system overview and key metrics" :
+                                activeTab === "analytics" ? "In-depth distribution and enrollment analysis" :
+                                    activeTab === "profile" ? "Manage your account details and security" :
+                                        activeTab === "guidelines" ? "Instructions for CSV data preparation" :
+                                            activeTab === "uploads" ? "Bulk import users and subjects via CSV" :
+                                                `Managing ${activeTab} — Intelligent Result Analysis System`
+                        }</p>
                     </div>
-                    <div className="header-profile">
-                        <div className="profile-info">
-                            <span className="name">{user.name}</span>
-                            <span className="role">Administrator</span>
+                    <div className="header-profile glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.5rem 1.25rem', borderRadius: '12px' }}>
+                        <div className="profile-info" style={{ textAlign: 'right' }}>
+                            <span className="name" style={{ display: 'block', fontWeight: 800, fontSize: '0.9rem', color: 'var(--accent-primary)' }}>{user.name}</span>
+                            <span className="role" style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>System Administrator</span>
                         </div>
-                        <div className="profile-avatar">{user.name?.[0]?.toUpperCase() || "A"}</div>
+                        <div className="profile-avatar" style={{ width: '38px', height: '38px', fontSize: '0.9rem', borderRadius: '10px' }}>
+                            {user.name?.[0]?.toUpperCase() || "A"}
+                        </div>
                     </div>
                 </header>
 
@@ -721,14 +785,78 @@ const AdminDashboard = () => {
                     </section>
                 )}
 
-                {/* ── DASHBOARD TABS ── */}
-                {activeTab !== "profile" && activeTab !== "guidelines" && (
+                {/* ── OVERVIEW TAB ── */}
+                {activeTab === "overview" && (
                     <>
-                        {/* STATS */}
+                        <section className="stats-section">
+                            {[
+                                { label: "Total Users", icon: "👥", value: stats.total_users, sub: "Registered accounts", color: "rgba(59, 130, 246, 0.1)" },
+                                { label: "Active Students", icon: "🎓", value: stats.total_students, sub: "Total enrollment", color: "rgba(16, 185, 129, 0.1)" },
+                                { label: "Faculty Members", icon: "👨‍🏫", value: stats.total_faculty, sub: "Teaching staff", color: "rgba(139, 92, 246, 0.1)" },
+                                { label: "System Admins", icon: "🛡️", value: stats.total_admins, sub: "Platform managers", color: "rgba(244, 63, 94, 0.1)" },
+                            ].map(({ label, icon, value, sub, color }) => (
+                                <div key={label} className="glass-card stat-card-p" style={{ borderLeft: `4px solid ${color === 'rgba(59, 130, 246, 0.1)' ? '#3b82f6' : color === 'rgba(16, 185, 129, 0.1)' ? '#10b981' : color === 'rgba(139, 92, 246, 0.1)' ? '#8b5cf6' : '#f43f5e'}` }}>
+                                    <div className="stat-p-header">
+                                        <span className="stat-p-label">{label}</span>
+                                        <div style={{ background: color, padding: '8px', borderRadius: '10px' }}>
+                                            <span className="stat-p-icon">{icon}</span>
+                                        </div>
+                                    </div>
+                                    <div className="stat-p-value">{value}</div>
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '6px', opacity: 0.7 }}>{sub}</div>
+                                </div>
+                            ))}
+                        </section>
+
+                        <section style={{ marginBottom: '2rem' }}>
+                            <div className="glass-card" style={{ padding: '2rem' }}>
+                                <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <span style={{ fontSize: '1.2rem' }}>🚀</span> Quick Access Management
+                                </h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                    {[
+                                        { icon: '🎓', label: 'Students', tab: 'students', color: '#3b82f6', desc: 'Manage profiles' },
+                                        { icon: '👨‍🏫', label: 'Faculty', tab: 'faculty', color: '#10b981', desc: 'Staff directory' },
+                                        { icon: '📘', label: 'Subjects', tab: 'subjects', color: '#8b5cf6', desc: 'Curriculum' },
+                                        { icon: '🏫', label: 'Courses', tab: 'courses', color: '#f59e0b', desc: 'Degree programs' },
+                                        { icon: '📅', label: 'Batches', tab: 'batches', color: '#ec4899', desc: 'Session cohorts' },
+                                        { icon: '📤', label: 'Upload Data', tab: 'uploads', color: '#06b6d4', desc: 'Bulk CSV import' },
+                                    ].map(({ icon, label, tab, color, desc }) => (
+                                        <button key={tab} onClick={() => setActiveTab(tab)} style={{
+                                            background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-card)',
+                                            borderRadius: '16px', padding: '1.25rem', textAlign: 'left',
+                                            cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', gap: '8px'
+                                        }} className="quick-action-card">
+                                            <div style={{ fontSize: '1.5rem', background: `${color}15`, width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>{icon}</div>
+                                            <div>
+                                                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{label}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', opacity: 0.6 }}>{desc}</div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="glass-card" style={{ padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>System Performance & Analytics</h3>
+                                <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: 'var(--text-dim)' }}>Monitor enrollment trends and distribution details in the analytics section.</p>
+                            </div>
+                            <button onClick={() => setActiveTab('analytics')} className="btn-add" style={{ background: 'transparent', border: '1.5px solid var(--accent-primary)', color: 'var(--accent-primary)', borderRadius: '10px' }}>
+                                View Detailed Reports →
+                            </button>
+                        </section>
+                    </>
+                )}
+
+                {/* ── ANALYTICS TAB ── */}
+                {activeTab === "analytics" && (
+                    <>
                         <section className="stats-section">
                             {[
                                 { label: "Total Users", icon: "👥", value: stats.total_users },
-                                { label: "Active Students", icon: "📚", value: stats.total_students },
+                                { label: "Active Students", icon: "🎓", value: stats.total_students },
                                 { label: "Faculty Members", icon: "👨‍🏫", value: stats.total_faculty },
                                 { label: "System Admins", icon: "🛡️", value: stats.total_admins },
                             ].map(({ label, icon, value }) => (
@@ -741,14 +869,12 @@ const AdminDashboard = () => {
                                 </div>
                             ))}
                         </section>
-
-                        {/* CHARTS */}
                         <section className="charts-section">
                             <div className="glass-card chart-container">
                                 <h3>Distribution by Role</h3>
-                                <ResponsiveContainer width="100%" height={250}>
+                                <ResponsiveContainer width="100%" height={280}>
                                     <PieChart>
-                                        <Pie data={roleDistribution} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                                        <Pie data={roleDistribution} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                                             {roleDistribution.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                                         </Pie>
                                         <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} />
@@ -757,155 +883,259 @@ const AdminDashboard = () => {
                                 </ResponsiveContainer>
                             </div>
                             <div className="glass-card chart-container">
-                                <h3>Students per Course</h3>
-                                <ResponsiveContainer width="100%" height={250}>
-                                    <BarChart data={courseData}>
+                                <h3>Students Enrolled per Course</h3>
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <BarChart data={courseData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                         <XAxis dataKey="course" stroke="#94a3b8" />
-                                        <YAxis stroke="#94a3b8" />
+                                        <YAxis stroke="#94a3b8" allowDecimals={false} />
                                         <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }} />
-                                        <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="count" name="Students" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
                         </section>
-
-                        {/* UPLOADS */}
-                        <section className="upload-section">
-                            <div className="glass-card upload-mini">
-                                <h4>Bulk Users</h4>
-                                <input type="file" id="up-users" hidden onChange={handleUserUpload} />
-                                <label htmlFor="up-users" className={uploadUserLoading ? "upload-btn loading" : "upload-btn"}>
-                                    {uploadUserLoading ? "Syncing..." : "Upload CSV"}
-                                </label>
-                                {uploadUserMessage && <p className="msg-ok">{uploadUserMessage}</p>}
-                            </div>
-                            <div className="glass-card upload-mini">
-                                <h4>Bulk Subjects</h4>
-                                <input type="file" id="up-subjects" hidden onChange={handleSubjectUpload} />
-                                <label htmlFor="up-subjects" className={uploadSubjectLoading ? "upload-btn loading" : "upload-btn"}>
-                                    {uploadSubjectLoading ? "Syncing..." : "Upload CSV"}
-                                </label>
-                                {uploadSubjectMessage && <p className="msg-ok">{uploadSubjectMessage}</p>}
-                            </div>
-                        </section>
-
-                        {/* DATA TABLE */}
-                        <section className="table-section">
-                            <div className="glass-card table-container-p">
-                                <div className="table-header-p">
-                                    <h3>Data Repository — {activeTab.toUpperCase()}</h3>
-                                    <div className="table-header-controls">
-                                        <input
-                                            type="text"
-                                            placeholder={`Search ${activeTab}...`}
-                                            onChange={(e) => {
-                                                if (activeTab === "students") { setSearchStudent(e.target.value); fetchStudentsData(1); }
-                                                if (activeTab === "faculty") { setSearchFaculty(e.target.value); fetchFacultyData(1); }
-                                                if (activeTab === "subjects") { setSearchSubject(e.target.value); fetchSubjectsData(1); }
-                                                if (activeTab === "courses") { setSearchCourse(e.target.value); fetchCoursesListData(1); }
-                                                if (activeTab === "batches") { setSearchBatch(e.target.value); fetchBatchesListData(1); }
-                                            }}
-                                        />
-                                        <button className="btn-add" onClick={() => {
-                                            const type = activeTab === "students" ? "student" : activeTab === "faculty" ? "faculty" : activeTab === "subjects" ? "subject" : activeTab === "courses" ? "course" : activeTab === "batches" ? "batch" : "user";
-                                            openCrudModal("add", type);
-                                        }}>
-                                            + Add {activeTab === "students" ? "Student" : activeTab === "faculty" ? "Faculty" : activeTab === "subjects" ? "Subject" : activeTab === "courses" ? "Course" : activeTab === "batches" ? "Batch" : "User"}
-                                        </button>
+                        <section className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+                            <h3 style={{ marginBottom: '1.5rem' }}>📈 Enrollment Summary</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1.5rem' }}>
+                                {[
+                                    { label: 'Student-to-Faculty Ratio', value: stats.total_faculty > 0 ? (stats.total_students / stats.total_faculty).toFixed(1) + ':1' : 'N/A', icon: '⚖️' },
+                                    { label: 'Total Courses', value: courseData.length, icon: '🏫' },
+                                    { label: 'Avg Students/Course', value: courseData.length > 0 ? (courseData.reduce((a, b) => a + b.count, 0) / courseData.length).toFixed(1) : '0', icon: '📊' },
+                                ].map(({ label, value, icon }) => (
+                                    <div key={label} style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(59,130,246,0.08)', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.2)' }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '8px' }}>{icon}</div>
+                                        <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--accent-primary)' }}>{value}</div>
+                                        <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: '4px' }}>{label}</div>
                                     </div>
-                                </div>
-                                <div className="p-table-wrapper">
-                                    <table className="p-table">
-                                        <thead>
-                                            {activeTab === "students" && <tr><th>Name</th><th>Email</th><th>Enrollment</th><th>Course</th><th>Batch</th><th>Actions</th></tr>}
-                                            {activeTab === "faculty" && <tr><th>Name</th><th>Email</th><th>Department</th><th>Actions</th></tr>}
-                                            {activeTab === "subjects" && <tr><th>Subject</th><th>Code</th><th>Sem</th><th>Faculty</th><th>Actions</th></tr>}
-                                            {activeTab === "courses" && <tr><th>Name</th><th>Code</th><th>Created At</th><th>Actions</th></tr>}
-                                            {activeTab === "batches" && <tr><th>Batch Name</th><th>Duration</th><th>Course</th><th>Actions</th></tr>}
-                                            {activeTab === "users" && <tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>}
-                                        </thead>
-                                        <tbody>
-                                            {activeTab === "students" && students.map(s => (
-                                                <tr key={s.id}>
-                                                    <td>{s.name}</td><td>{s.email}</td><td>{s.enrollment_number}</td><td>{s.course}</td><td>{s.batch}</td>
-                                                    <td className="action-buttons">
-                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "student", s)} title="Edit">✏️</button>
-                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: s.id, type: "student" })} title="Delete">🗑️</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {activeTab === "faculty" && faculty.map(f => (
-                                                <tr key={f.id}>
-                                                    <td>{f.name}</td><td>{f.email}</td><td>{f.department}</td>
-                                                    <td className="action-buttons">
-                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "faculty", f)} title="Edit">✏️</button>
-                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: f.id, type: "faculty" })} title="Delete">🗑️</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {activeTab === "subjects" && subjects.map(s => (
-                                                <tr key={s.id}>
-                                                    <td>{s.name}</td><td>{s.code}</td><td>{s.semester}</td><td>{s.faculty_name}</td>
-                                                    <td className="action-buttons">
-                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "subject", s)} title="Edit">✏️</button>
-                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: s.id, type: "subject" })} title="Delete">🗑️</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {activeTab === "courses" && coursesList.map(c => (
-                                                <tr key={c.id}>
-                                                    <td>{c.name}</td><td>{c.code}</td><td>{c.created_at}</td>
-                                                    <td className="action-buttons">
-                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "course", c)} title="Edit">✏️</button>
-                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: c.id, type: "course" })} title="Delete">🗑️</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {activeTab === "batches" && batchesList.map(b => (
-                                                <tr key={b.id}>
-                                                    <td>{b.name}</td><td>{b.start_year} - {b.end_year}</td><td>{b.course}</td>
-                                                    <td className="action-buttons">
-                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "batch", b)} title="Edit">✏️</button>
-                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: b.id, type: "batch" })} title="Delete">🗑️</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {activeTab === "users" && users.map(u => (
-                                                <tr key={u.id}>
-                                                    <td>{u.name}</td><td>{u.email}</td><td><span className={`badge-p ${u.role}`}>{u.role}</span></td>
-                                                    <td className="action-buttons">
-                                                        <button className="btn-edit" onClick={() => openCrudModal("edit", "user", u)} title="Edit">✏️</button>
-                                                        <button className="btn-delete" onClick={() => setDeleteConfirm({ open: true, id: u.id, type: "user" })} title="Delete">🗑️</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div className="pagination">
-                                    {activeTab === "students" && Array.from({ length: totalPagesStudent }, (_, i) => i + 1).map(p => (
-                                        <button key={p} className={p === pageStudent ? "active" : ""} onClick={() => fetchStudentsData(p)}>{p}</button>
-                                    ))}
-                                    {activeTab === "faculty" && Array.from({ length: totalPagesFaculty }, (_, i) => i + 1).map(p => (
-                                        <button key={p} className={p === pageFaculty ? "active" : ""} onClick={() => fetchFacultyData(p)}>{p}</button>
-                                    ))}
-                                    {activeTab === "users" && Array.from({ length: totalPagesUser }, (_, i) => i + 1).map(p => (
-                                        <button key={p} className={p === pageUser ? "active" : ""} onClick={() => fetchUsersData(p)}>{p}</button>
-                                    ))}
-                                    {activeTab === "subjects" && Array.from({ length: totalPagesSubject }, (_, i) => i + 1).map(p => (
-                                        <button key={p} className={p === pageSubject ? "active" : ""} onClick={() => fetchSubjectsData(p)}>{p}</button>
-                                    ))}
-                                    {activeTab === "courses" && Array.from({ length: totalPagesCourse }, (_, i) => i + 1).map(p => (
-                                        <button key={p} className={p === pageCourse ? "active" : ""} onClick={() => fetchCoursesListData(p)}>{p}</button>
-                                    ))}
-                                    {activeTab === "batches" && Array.from({ length: totalPagesBatch }, (_, i) => i + 1).map(p => (
-                                        <button key={p} className={p === pageBatch ? "active" : ""} onClick={() => fetchBatchesListData(p)}>{p}</button>
-                                    ))}
-                                </div>
+                                ))}
                             </div>
                         </section>
                     </>
+                )}
+
+                {/* ── UPLOADS TAB ── */}
+                {activeTab === "uploads" && (
+                    <section className="glass-card" style={{ padding: '2.5rem', marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '0.5rem' }}>📤 Bulk Upload Center</h2>
+                        <p style={{ color: 'var(--text-dim)', marginBottom: '2.5rem' }}>Import multiple users or subjects at once using CSV files.</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                            <div style={{ padding: '2rem', background: 'rgba(59,130,246,0.08)', borderRadius: '16px', border: '1px solid rgba(59,130,246,0.2)' }}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>👥</div>
+                                <h3 style={{ marginBottom: '0.5rem' }}>Bulk Users Upload</h3>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: '1.5rem' }}>Upload students and faculty in one go using a CSV file.</p>
+                                <input type="file" id="up-users" hidden onChange={handleUserUpload} />
+                                <label htmlFor="up-users" className={uploadUserLoading ? "upload-btn loading" : "upload-btn"} style={{ display: 'inline-block' }}>
+                                    {uploadUserLoading ? "⏳ Syncing..." : "📂 Choose CSV File"}
+                                </label>
+                                {uploadUserMessage && <p className="msg-ok" style={{ marginTop: '1rem' }}>{uploadUserMessage}</p>}
+                            </div>
+                            <div style={{ padding: '2rem', background: 'rgba(139,92,246,0.08)', borderRadius: '16px', border: '1px solid rgba(139,92,246,0.2)' }}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📘</div>
+                                <h3 style={{ marginBottom: '0.5rem' }}>Bulk Subjects Upload</h3>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: '1.5rem' }}>Import the subject catalogue for a batch and semester.</p>
+                                <input type="file" id="up-subjects" hidden onChange={handleSubjectUpload} />
+                                <label htmlFor="up-subjects" className={uploadSubjectLoading ? "upload-btn loading" : "upload-btn"} style={{ display: 'inline-block' }}>
+                                    {uploadSubjectLoading ? "⏳ Syncing..." : "📂 Choose CSV File"}
+                                </label>
+                                {uploadSubjectMessage && <p className="msg-ok" style={{ marginTop: '1rem' }}>{uploadSubjectMessage}</p>}
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '2rem', padding: '1rem 1.5rem', background: 'rgba(245,158,11,0.1)', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.3)', fontSize: '0.85rem', color: 'var(--text-dim)' }}>
+                            ℹ️ Create all <strong>Courses</strong> and <strong>Batches</strong> before uploading students or subjects. See <button onClick={() => setActiveTab('guidelines')} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontWeight: 700, padding: 0 }}>CSV Guidelines</button> for format details.
+                        </div>
+                    </section>
+                )}
+
+                {/* ── DATA REPOSITORY TABS ── */}
+                {["students", "faculty", "subjects", "courses", "batches", "users"].includes(activeTab) && (
+                    <section className="table-section">
+                        <div className="glass-card table-container-p" style={{ padding: '0', overflow: 'hidden' }}>
+                            <div className="table-header-p" style={{ padding: '1.5rem 2rem', background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-card)', margin: '0' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{activeTab.toUpperCase()} REPOSITORY</h3>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', opacity: 0.6 }}>Manage and view your system data efficiently</span>
+                                </div>
+                                <div className="table-header-controls" style={{ gap: '1rem', flexWrap: 'wrap' }}>
+                                    {/* SEARCH */}
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type="text"
+                                            placeholder={`Quick search ${activeTab}...`}
+                                            style={{ paddingLeft: '2.5rem', width: '220px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', color: '#000' }}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (activeTab === "students") setSearchStudent(val);
+                                                if (activeTab === "faculty") setSearchFaculty(val);
+                                                if (activeTab === "subjects") setSearchSubject(val);
+                                                if (activeTab === "courses") setSearchCourse(val);
+                                                if (activeTab === "batches") setSearchBatch(val);
+                                                if (activeTab === "users") setSearchUser(val);
+                                            }}
+                                        />
+                                        <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+                                    </div>
+
+                                    {/* DYNAMIC FILTERS */}
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        {activeTab === "students" && (
+                                            <>
+                                                <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fStudentCourse} onChange={(e) => setFStudentCourse(e.target.value)}>
+                                                    <option value="">All Courses</option>
+                                                    {allCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                </select>
+                                                <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fStudentBatch} onChange={(e) => setFStudentBatch(e.target.value)}>
+                                                    <option value="">All Batches</option>
+                                                    {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                                </select>
+                                            </>
+                                        )}
+                                        {activeTab === "faculty" && (
+                                            <select style={{ width: '160px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fFacultyDept} onChange={(e) => setFFacultyDept(e.target.value)}>
+                                                <option value="">All Departments</option>
+                                                {[...new Set(faculty.map(f => f.department).filter(Boolean))].map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        )}
+                                        {activeTab === "subjects" && (
+                                            <>
+                                                <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fSubjectFaculty} onChange={(e) => setFSubjectFaculty(e.target.value)}>
+                                                    <option value="">All Faculty</option>
+                                                    {allFaculty.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                                </select>
+                                                <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fSubjectSem} onChange={(e) => setFSubjectSem(e.target.value)}>
+                                                    <option value="">All Semesters</option>
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Sem {s}</option>)}
+                                                </select>
+                                            </>
+                                        )}
+                                        {activeTab === "batches" && (
+                                            <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fBatchCourse} onChange={(e) => setFBatchCourse(e.target.value)}>
+                                                <option value="">All Courses</option>
+                                                {allCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                            </select>
+                                        )}
+                                        {activeTab === "users" && (
+                                            <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fUserRole} onChange={(e) => setFUserRole(e.target.value)}>
+                                                <option value="">All Roles</option>
+                                                <option value="student">Student</option>
+                                                <option value="faculty">Faculty</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                        )}
+                                        <button onClick={() => {
+                                            setFStudentCourse(""); setFStudentBatch(""); setFFacultyDept(""); setFSubjectSem(""); setFSubjectFaculty(""); setFUserRole(""); setFBatchCourse("");
+                                        }} style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '0 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>Reset</button>
+                                    </div>
+
+                                    <button className="btn-add" style={{ borderRadius: '10px', padding: '0.6rem 1.25rem', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 'fit-content' }} onClick={() => {
+                                        const type = activeTab === "students" ? "student" : activeTab === "faculty" ? "faculty" : activeTab === "subjects" ? "subject" : activeTab === "courses" ? "course" : activeTab === "batches" ? "batch" : "user";
+                                        openCrudModal("add", type);
+                                    }}>
+                                        <span style={{ fontSize: '1.1rem' }}>+</span>
+                                        <span>New {activeTab.slice(0, -1)}</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="p-table-wrapper" style={{ padding: '0 1rem' }}>
+                                <table className="p-table" style={{ borderCollapse: 'separate', borderSpacing: '0 8px' }}>
+                                    <thead style={{ background: 'transparent' }}>
+                                        {activeTab === "students" && <tr><th style={{ paddingLeft: '1.5rem' }}>Name</th><th>Email</th><th>Enrollment</th><th>Course</th><th>Batch</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
+                                        {activeTab === "faculty" && <tr><th style={{ paddingLeft: '1.5rem' }}>Name</th><th>Email</th><th>Department</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
+                                        {activeTab === "subjects" && <tr><th style={{ paddingLeft: '1.5rem' }}>Subject</th><th>Code</th><th>Sem</th><th>Faculty</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
+                                        {activeTab === "courses" && <tr><th style={{ paddingLeft: '1.5rem' }}>Name</th><th>Code</th><th>Created At</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
+                                        {activeTab === "batches" && <tr><th style={{ paddingLeft: '1.5rem' }}>Batch Name</th><th>Duration</th><th>Course</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
+                                        {activeTab === "users" && <tr><th style={{ paddingLeft: '1.5rem' }}>Name</th><th>Email</th><th>Role</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
+                                    </thead>
+                                    <tbody>
+                                        {activeTab === "students" && students.map(s => (
+                                            <tr key={s.id} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                                                <td style={{ paddingLeft: '1.5rem' }}><strong>{s.name}</strong></td>
+                                                <td style={{ opacity: 0.7 }}>{s.email}</td>
+                                                <td><span style={{ background: 'rgba(0,0,0,0.1)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem' }}>{s.enrollment_number}</span></td>
+                                                <td>{s.course}</td><td>{s.batch}</td>
+                                                <td className="action-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'center', border: 'none' }}>
+                                                    <button className="btn-edit" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => openCrudModal("edit", "student", s)}>Edit</button>
+                                                    <button className="btn-delete" style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => setDeleteConfirm({ open: true, id: s.id, type: "student" })}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {activeTab === "faculty" && faculty.map(f => (
+                                            <tr key={f.id} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                                                <td style={{ paddingLeft: '1.5rem' }}><strong>{f.name}</strong></td>
+                                                <td style={{ opacity: 0.7 }}>{f.email}</td><td>{f.department}</td>
+                                                <td className="action-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'center', border: 'none' }}>
+                                                    <button className="btn-edit" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => openCrudModal("edit", "faculty", f)}>Edit</button>
+                                                    <button className="btn-delete" style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => setDeleteConfirm({ open: true, id: f.id, type: "faculty" })}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {activeTab === "subjects" && subjects.map(s => (
+                                            <tr key={s.id} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                                                <td style={{ paddingLeft: '1.5rem' }}><strong>{s.name}</strong></td>
+                                                <td><code style={{ background: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px' }}>{s.code}</code></td>
+                                                <td style={{ textAlign: 'center' }}>{s.semester}</td><td>{s.faculty_name}</td>
+                                                <td className="action-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'center', border: 'none' }}>
+                                                    <button className="btn-edit" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => openCrudModal("edit", "subject", s)}>Edit</button>
+                                                    <button className="btn-delete" style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => setDeleteConfirm({ open: true, id: s.id, type: "subject" })}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {activeTab === "courses" && coursesList.map(c => (
+                                            <tr key={c.id} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                                                <td style={{ paddingLeft: '1.5rem' }}><strong>{c.name}</strong></td>
+                                                <td>{c.code}</td><td style={{ opacity: 0.6 }}>{c.created_at}</td>
+                                                <td className="action-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'center', border: 'none' }}>
+                                                    <button className="btn-edit" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => openCrudModal("edit", "course", c)}>Edit</button>
+                                                    <button className="btn-delete" style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => setDeleteConfirm({ open: true, id: c.id, type: "course" })}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {activeTab === "batches" && batchesList.map(b => (
+                                            <tr key={b.id} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                                                <td style={{ paddingLeft: '1.5rem' }}><strong>{b.name}</strong></td>
+                                                <td>{b.start_year} - {b.end_year}</td><td>{b.course}</td>
+                                                <td className="action-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'center', border: 'none' }}>
+                                                    <button className="btn-edit" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => openCrudModal("edit", "batch", b)}>Edit</button>
+                                                    <button className="btn-delete" style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => setDeleteConfirm({ open: true, id: b.id, type: "batch" })}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {activeTab === "users" && users.map(u => (
+                                            <tr key={u.id} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                                                <td style={{ paddingLeft: '1.5rem' }}><strong>{u.name}</strong></td>
+                                                <td style={{ opacity: 0.7 }}>{u.email}</td>
+                                                <td><span className={`badge-p ${u.role}`} style={{ fontSize: '0.7rem', padding: '2px 10px' }}>{u.role.toUpperCase()}</span></td>
+                                                <td className="action-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'center', border: 'none' }}>
+                                                    <button className="btn-edit" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => openCrudModal("edit", "user", u)}>Edit</button>
+                                                    <button className="btn-delete" style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => setDeleteConfirm({ open: true, id: u.id, type: "user" })}>Delete</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="pagination" style={{ padding: '1.5rem', borderTop: '1px solid var(--border-card)', justifyContent: 'center', background: 'rgba(0,0,0,0.01)' }}>
+                                {activeTab === "students" && totalPagesStudent > 1 && Array.from({ length: totalPagesStudent }, (_, i) => i + 1).map(p => (
+                                    <button key={p} className={p === pageStudent ? "active" : ""} style={{ width: '36px', height: '36px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }} onClick={() => fetchStudentsData(p)}>{p}</button>
+                                ))}
+                                {activeTab === "faculty" && totalPagesFaculty > 1 && Array.from({ length: totalPagesFaculty }, (_, i) => i + 1).map(p => (
+                                    <button key={p} className={p === pageFaculty ? "active" : ""} style={{ width: '36px', height: '36px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }} onClick={() => fetchFacultyData(p)}>{p}</button>
+                                ))}
+                                {activeTab === "users" && totalPagesUser > 1 && Array.from({ length: totalPagesUser }, (_, i) => i + 1).map(p => (
+                                    <button key={p} className={p === pageUser ? "active" : ""} style={{ width: '36px', height: '36px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }} onClick={() => fetchUsersData(p)}>{p}</button>
+                                ))}
+                                {activeTab === "subjects" && totalPagesSubject > 1 && Array.from({ length: totalPagesSubject }, (_, i) => i + 1).map(p => (
+                                    <button key={p} className={p === pageSubject ? "active" : ""} style={{ width: '36px', height: '36px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }} onClick={() => fetchSubjectsData(p)}>{p}</button>
+                                ))}
+                                {activeTab === "courses" && totalPagesCourse > 1 && Array.from({ length: totalPagesCourse }, (_, i) => i + 1).map(p => (
+                                    <button key={p} className={p === pageCourse ? "active" : ""} style={{ width: '36px', height: '36px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }} onClick={() => fetchCoursesListData(p)}>{p}</button>
+                                ))}
+                                {activeTab === "batches" && totalPagesBatch > 1 && Array.from({ length: totalPagesBatch }, (_, i) => i + 1).map(p => (
+                                    <button key={p} className={p === pageBatch ? "active" : ""} style={{ width: '36px', height: '36px', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700 }} onClick={() => fetchBatchesListData(p)}>{p}</button>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
                 )}
             </main>
         </div>
