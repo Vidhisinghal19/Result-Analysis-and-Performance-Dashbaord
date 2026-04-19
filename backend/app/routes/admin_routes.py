@@ -674,15 +674,14 @@ def update_subject(id):
         if "code" in data: 
             new_code = data.get("code")
             if new_code != subject.code:
-                # Check uniqueness within the current semester of the subject
                 existing = Subject.query.filter_by(code=new_code, semester_id=subject.semester_id).first()
                 if existing: return jsonify({"error": "Code already exists in this semester"}), 400
                 subject.code = new_code
         
         if "type" in data: subject.type = data.get("type")
         if "credits" in data: subject.credits = data.get("credits")
-        
-        if "semester_id" in data:
+        if "faculty_id" in data: subject.faculty_id = data.get("faculty_id") or None
+        if "semester_id" in data and data.get("semester_id"):
             subject.semester_id = data.get("semester_id")
 
         db.session.commit()

@@ -129,11 +129,31 @@ def users_list():
 def subjects_list():
     page = int(request.args.get('page', 1))
     search = request.args.get('search', '').strip()
-    query = db.session.query(Subject.id, Subject.name, Subject.code, Subject.faculty_id, Semester.number.label('semester'), User.name.label('f_name')).outerjoin(Faculty, Subject.faculty_id == Faculty.id).outerjoin(User, Faculty.user_id == User.id).outerjoin(Semester, Subject.semester_id == Semester.id)
+    query = db.session.query(
+        Subject.id, Subject.name, Subject.code,
+        Subject.faculty_id, Subject.semester_id,
+        Semester.number.label('semester'),
+        User.name.label('f_name')
+    ).outerjoin(Faculty, Subject.faculty_id == Faculty.id)\
+     .outerjoin(User, Faculty.user_id == User.id)\
+     .outerjoin(Semester, Subject.semester_id == Semester.id)
     if search: query = query.filter(db.or_(Subject.name.ilike(f'%{search}%'), Subject.code.ilike(f'%{search}%')))
     total = query.count()
     rows = query.offset((page - 1) * 10).limit(10).all()
-    return jsonify({'data': [{'id': r.id, 'name': r.name, 'code': r.code, 'faculty_id': r.faculty_id, 'semester': r.semester or "NA", 'faculty_name': r.f_name or "NA"} for r in rows], 'total': total, 'pages': max(1, (total + 9) // 10), 'page': page})
+    return jsonify({
+        'data': [{
+            'id': r.id,
+            'name': r.name,
+            'code': r.code,
+            'faculty_id': r.faculty_id,
+            'semester_id': r.semester_id,
+            'semester': r.semester or "NA",
+            'faculty_name': r.f_name or "NA"
+        } for r in rows],
+        'total': total,
+        'pages': max(1, (total + 9) // 10),
+        'page': page
+    })
 @dashboard_bp.route('/courses-list', methods=['GET'])
 def courses_list():
     from app.models.course import Course

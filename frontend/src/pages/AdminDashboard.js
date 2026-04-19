@@ -269,13 +269,6 @@ const AdminDashboard = () => {
                     faculty_id: crudForm.faculty_id || null,
                     semester_id: crudForm.semester_id || null
                 };
-                if (crudModal.type === "subject") {
-                    fetchSubjectsData(pageSubject);
-                } else if (crudModal.type === "course") {
-                    fetchCoursesListData(pageCourse);
-                } else if (crudModal.type === "batch") {
-                    fetchBatchesListData(pageBatch);
-                }
 
                 if (crudModal.action === "add") {
                     endpoint = `${API_BASE}/api/admin/subject`;
@@ -325,34 +318,37 @@ const AdminDashboard = () => {
             }
 
             const res = method === "POST" ? await axios.post(endpoint, payload) : await axios.put(endpoint, payload);
-            setCrudMessage({ text: res.data.message || "Operation successful!", type: "success" });
+            setCrudMessage({ text: res.data.message || "Updated successfully!", type: "success" });
 
-            // Refresh data after a short delay, then close modal
-            setTimeout(() => {
-                // Only refresh the relevant data, not everything
-                if (crudModal.type === "student") {
-                    fetchStudentsData(pageStudent);
-                } else if (crudModal.type === "faculty") {
-                    fetchFacultyData(pageFaculty);
-                } else if (crudModal.type === "user") {
-                    fetchUsersData(pageUser);
-                } else if (crudModal.type === "subject") {
-                    fetchSubjectsData(pageSubject);
-                } else if (crudModal.type === "course") {
-                    fetchCoursesListData(pageCourse);
-                    fetchDashboardData();
-                } else if (crudModal.type === "batch") {
-                    fetchBatchesListData(pageBatch);
-                    fetchBatches();
-                    fetchDashboardData();
+            // Immediately refresh the relevant table data so changes are visible
+            const refreshAndClose = async () => {
+                try {
+                    if (crudModal.type === "student") {
+                        await fetchStudentsData(pageStudent);
+                        fetchDashboardData();
+                    } else if (crudModal.type === "faculty") {
+                        await fetchFacultyData(pageFaculty);
+                        fetchDashboardData();
+                    } else if (crudModal.type === "user") {
+                        await fetchUsersData(pageUser);
+                    } else if (crudModal.type === "subject") {
+                        await fetchSubjectsData(pageSubject);
+                    } else if (crudModal.type === "course") {
+                        await fetchCoursesListData(pageCourse);
+                        fetchDashboardData();
+                    } else if (crudModal.type === "batch") {
+                        await fetchBatchesListData(pageBatch);
+                        await fetchBatches();
+                        fetchDashboardData();
+                    }
+                } finally {
+                    // Close modal after refresh is done
+                    setTimeout(() => closeCrudModal(), 600);
                 }
+            };
 
-                // Refresh stats separately without closing the modal immediately
-                axios.get(`${API_BASE}/api/dashboard/stats`).then(res => setStats(res.data)).catch(() => { });
+            setTimeout(() => refreshAndClose(), 400);
 
-                // Close modal after showing success
-                setTimeout(() => closeCrudModal(), 500);
-            }, 1000);
         } catch (err) {
             console.error("CRUD Error:", err);
             const msg = err.response?.data?.error || err.message || "Operation failed!";
