@@ -544,7 +544,7 @@ const AdminDashboard = () => {
             {/* SIDEBAR */}
             <aside className="sidebar">
                 <div className="sidebar-logo">
-                    <span className="logo-icon">J</span>
+                    <span className="logo-icon">JIMS</span>
                     <h2>ADMIN PANEL</h2>
                 </div>
                 <nav className="sidebar-nav">
