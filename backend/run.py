@@ -21,10 +21,11 @@ for attempt in range(max_retries):
         with app.app_context():
             db.create_all()
             if not User.query.filter_by(role='admin').first():
-                admin = User(name="Admin", email="admin@example.com", password="password", role="admin")
+                admin = User(name="Admin", email="admin@example.com", role="admin")
+                admin.set_password("password")
                 db.session.add(admin)
                 db.session.commit()
-                print("Admin user created.")
+                print("Admin user created with hashed password.")
         break
     except sqlalchemy.exc.OperationalError:
         print(f"Database not ready. Retrying ({attempt + 1}/{max_retries})...")

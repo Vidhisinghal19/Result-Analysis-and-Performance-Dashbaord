@@ -19,7 +19,8 @@ def register():
         if role == "student" and not data.get("enrollment_number"):
             return jsonify({"error": "Enrollment number is required"}), 400
 
-        user = User(name=data.get("name"), email=data.get("email"), password=data.get("password"), role=role)
+        user = User(name=data.get("name"), email=data.get("email"), role=role)
+        user.set_password(data.get("password") or "jims@123456")
         db.session.add(user)
         db.session.flush()
 
@@ -42,7 +43,7 @@ def login():
         if not email or not password: return jsonify({"error": "Credentials required"}), 400
 
         user = User.query.filter_by(email=email).first()
-        if not user or user.password != password:
+        if not user or not user.check_password(password):
             return jsonify({"error": "Invalid credentials"}), 401
 
         return jsonify({"message": "Login success", "id": user.id, "name": user.name, "email": user.email, "role": user.role}), 200
@@ -82,11 +83,11 @@ def update_profile():
         if new_password:
             if not current_password:
                 return jsonify({"error": "Current password is required to set a new password"}), 400
-            if user.password != current_password:
+            if not user.check_password(current_password):
                 return jsonify({"error": "Current password is incorrect"}), 401
             if len(new_password) < 6:
                 return jsonify({"error": "New password must be at least 6 characters"}), 400
-            user.password = new_password
+            user.set_password(new_password)
 
         user.name = new_name
         user.email = new_email

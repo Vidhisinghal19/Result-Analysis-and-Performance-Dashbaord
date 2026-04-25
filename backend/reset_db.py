@@ -22,9 +22,9 @@ def reset_database():
         admin = User(
             name="Admin", 
             email="admin@example.com", 
-            password="password", 
             role="admin"
         )
+        admin.set_password("password")
         db.session.add(admin)
         db.session.commit()
         print("Database reset successfully!")

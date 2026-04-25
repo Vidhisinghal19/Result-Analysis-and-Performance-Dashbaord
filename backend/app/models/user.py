@@ -1,4 +1,5 @@
 from app import db
+from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
     __tablename__ = "users"
@@ -13,6 +14,14 @@ class User(db.Model):
     # Relationships
     student_profile = db.relationship('Student', backref='user', uselist=False, cascade='all, delete-orphan')
     faculty_profile = db.relationship('Faculty', backref='user', uselist=False, cascade='all, delete-orphan')
+
+    def set_password(self, password):
+        """Hashes the password and stores it."""
+        self.password = generate_password_hash(password, method='pbkdf2:sha256')
+
+    def check_password(self, password):
+        """Checks the hashed password."""
+        return check_password_hash(self.password, password)
 
     def to_dict(self):
         return {

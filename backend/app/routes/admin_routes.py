@@ -55,9 +55,9 @@ def upload_users():
                     user = User(
                         name=norm.get("name", email),
                         email=email,
-                        password=norm.get("password", "jims@123456"),
                         role=role
                     )
+                    user.set_password(norm.get("password") or "jims@123456")
                     db.session.add(user)
                     db.session.flush()
 
@@ -306,9 +306,9 @@ def create_student():
         user = User(
             name=data.get("name"),
             email=data.get("email"),
-            password=data.get("password", "jims@123456"),
             role="student"
         )
+        user.set_password(data.get("password") or "jims@123456")
         db.session.add(user)
         db.session.flush()
         
@@ -440,9 +440,9 @@ def create_faculty():
         user = User(
             name=data.get("name"),
             email=data.get("email"),
-            password=data.get("password", "jims@123456"),
             role="faculty"
         )
+        user.set_password(data.get("password") or "jims@123456")
         db.session.add(user)
         db.session.flush()
         
@@ -546,9 +546,9 @@ def create_user():
         user = User(
             name=data.get("name"),
             email=data.get("email"),
-            password=data.get("password", "jims@123456"),
             role=data.get("role", "admin")
         )
+        user.set_password(data.get("password") or "jims@123456")
         db.session.add(user)
         db.session.commit()
         

@@ -63,8 +63,16 @@ docker-compose up --build
 
 ---
 
+## 🛡️ Security Infrastructure
+- **Password Orchestration**: Advanced hashing protocol using `Werkzeug` (PBKDF2-SHA256) to eliminate plain-text storage.
+- **Migration Protocol**: Built-in migration suite (`migrate_passwords.py`) to transition legacy credentials to secure hashes.
+- **Credential Recovery**: Automatic backup of original credentials to `backend/instance/original_credentials.csv` during migration.
+
+---
+
 ## 🛠️ Implementation Highlights
 
+- **Cryptographic Security**: Enforced salted password hashing across all user roles (Admin, Faculty, Student).
 - **Data Integrity**: Enforced `UniqueConstraints` on assessments and marks to prevent duplication.
 - **Filtering Engine**: Backend-driven pagination and precise filtering for managing large institutional datasets.
 - **Mentorship Integration**: Closed-loop feedback system linking Faculty remarks directly to Student dashboards.
