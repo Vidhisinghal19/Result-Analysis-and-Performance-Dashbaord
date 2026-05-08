@@ -1,0 +1,8 @@
+name,code,batch_name,semester_number,faculty_email,type,credits
+Data Structures,MCA-201,2025-2027,2,sandeep.singh@jimsipu.org,Core,4
+Python Programming,MCA-202,2025-2027,2,deepshikha.aggarwal@jimsipu.org,Core,4
+Object Oriented Software Engineering,MCA-203,2025-2027,2,latika.kharb@jimsipu.org,Core,4
+Digital Marketing,MCA-204,2025-2027,2,sonia.gupta@jimsipu.org,Core,4
+Full Stack Development,MCA-E205,2025-2027,2,deepshikha.aggarwal@jimsipu.org,Elective,3
+Data Warehousing and Data Mining,MCA-E206,2025-2027,2,latika.kharb@jimsipu.org,Elective,3
+Software Testing,MCA-E207,2025-2027,2,sandeep.singh@jimsipu.org,Elective,3

@@ -1,5 +1,4 @@
-from app import db
-from werkzeug.security import generate_password_hash, check_password_hash
+from app import db, bcrypt
 
 class User(db.Model):
     __tablename__ = "users"
@@ -16,12 +15,12 @@ class User(db.Model):
     faculty_profile = db.relationship('Faculty', backref='user', uselist=False, cascade='all, delete-orphan')
 
     def set_password(self, password):
-        """Hashes the password and stores it."""
-        self.password = generate_password_hash(password, method='pbkdf2:sha256')
+        """Hashes the password and stores it using bcrypt."""
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
 
     def check_password(self, password):
-        """Checks the hashed password."""
-        return check_password_hash(self.password, password)
+        """Checks the hashed password using bcrypt."""
+        return bcrypt.check_password_hash(self.password, password)
 
     def to_dict(self):
         return {

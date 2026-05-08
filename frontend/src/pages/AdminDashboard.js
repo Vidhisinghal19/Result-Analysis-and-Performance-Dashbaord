@@ -50,6 +50,7 @@ const AdminDashboard = () => {
     const [fFacultyDept, setFFacultyDept] = useState("");
     const [fSubjectSem, setFSubjectSem] = useState("");
     const [fSubjectFaculty, setFSubjectFaculty] = useState("");
+    const [fSubjectCourse, setFSubjectCourse] = useState("");
     const [fUserRole, setFUserRole] = useState("");
     const [fBatchCourse, setFBatchCourse] = useState("");
     const [pageStudent, setPageStudent] = useState(1);
@@ -102,10 +103,10 @@ const AdminDashboard = () => {
 
     const fetchSubjectsData = useCallback(async (page) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/dashboard/subjects-list?page=${page}&search=${searchSubject}&faculty_id=${fSubjectFaculty}&semester_id=${fSubjectSem}`);
+            const res = await axios.get(`${API_BASE}/api/dashboard/subjects-list?page=${page}&search=${searchSubject}&faculty_id=${fSubjectFaculty}&semester_id=${fSubjectSem}&course_id=${fSubjectCourse}`);
             setSubjects(res.data.data); setTotalPagesSubject(res.data.pages); setPageSubject(page);
         } catch (_) { }
-    }, [searchSubject, fSubjectFaculty, fSubjectSem]);
+    }, [searchSubject, fSubjectFaculty, fSubjectSem, fSubjectCourse]);
 
     const fetchAllFaculty = useCallback(async () => {
         try {
@@ -743,6 +744,7 @@ const AdminDashboard = () => {
                                         <li><strong>role:</strong> Required (student / faculty / admin)</li>
                                         <li><strong>enrollment_number:</strong> Required for students</li>
                                         <li><strong>batch_name:</strong> Required for students (e.g. 2024-2027)</li>
+                                        <li><strong>semester_number:</strong> Optional for students (e.g. 1, 2)</li>
                                         <li><strong>department:</strong> Required for faculty</li>
                                     </ul>
                                 </div>
@@ -956,13 +958,22 @@ const AdminDashboard = () => {
                                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{activeTab.toUpperCase()} REPOSITORY</h3>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', opacity: 0.6 }}>Manage and view your system data efficiently</span>
                                 </div>
-                                <div className="table-header-controls" style={{ gap: '1rem', flexWrap: 'wrap' }}>
+                                <div className="table-header-controls" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                                     {/* SEARCH */}
                                     <div style={{ position: 'relative' }}>
                                         <input
                                             type="text"
-                                            placeholder={`Quick search ${activeTab}...`}
-                                            style={{ paddingLeft: '2.5rem', width: '220px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', color: '#000' }}
+                                            placeholder={`Search...`}
+                                            style={{ 
+                                                paddingLeft: '2.5rem', 
+                                                width: '200px', 
+                                                height: '42px',
+                                                borderRadius: '12px', 
+                                                background: 'rgba(255,255,255,0.05)', 
+                                                border: '1px solid var(--border-card)', 
+                                                color: '#000',
+                                                fontSize: '0.85rem'
+                                            }}
                                             onChange={(e) => {
                                                 const val = e.target.value;
                                                 if (activeTab === "students") setSearchStudent(val);
@@ -977,45 +988,49 @@ const AdminDashboard = () => {
                                     </div>
 
                                     {/* DYNAMIC FILTERS */}
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         {activeTab === "students" && (
                                             <>
-                                                <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fStudentCourse} onChange={(e) => setFStudentCourse(e.target.value)}>
+                                                <select style={{ height: '42px', width: '130px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000', padding: '0 10px' }} value={fStudentCourse} onChange={(e) => setFStudentCourse(e.target.value)}>
                                                     <option value="">All Courses</option>
                                                     {allCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                                 </select>
-                                                <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fStudentBatch} onChange={(e) => setFStudentBatch(e.target.value)}>
+                                                <select style={{ height: '42px', width: '130px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000', padding: '0 10px' }} value={fStudentBatch} onChange={(e) => setFStudentBatch(e.target.value)}>
                                                     <option value="">All Batches</option>
                                                     {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                                 </select>
                                             </>
                                         )}
                                         {activeTab === "faculty" && (
-                                            <select style={{ width: '160px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fFacultyDept} onChange={(e) => setFFacultyDept(e.target.value)}>
+                                            <select style={{ height: '42px', width: '150px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000', padding: '0 10px' }} value={fFacultyDept} onChange={(e) => setFFacultyDept(e.target.value)}>
                                                 <option value="">All Departments</option>
                                                 {[...new Set(faculty.map(f => f.department).filter(Boolean))].map(d => <option key={d} value={d}>{d}</option>)}
                                             </select>
                                         )}
                                         {activeTab === "subjects" && (
                                             <>
-                                                <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fSubjectFaculty} onChange={(e) => setFSubjectFaculty(e.target.value)}>
+                                                <select style={{ height: '42px', width: '130px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000', padding: '0 10px' }} value={fSubjectCourse} onChange={(e) => setFSubjectCourse(e.target.value)}>
+                                                    <option value="">All Courses</option>
+                                                    {allCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                </select>
+                                                <select style={{ height: '42px', width: '130px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000', padding: '0 10px' }} value={fSubjectFaculty} onChange={(e) => setFSubjectFaculty(e.target.value)}>
                                                     <option value="">All Faculty</option>
                                                     {allFaculty.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                                                 </select>
-                                                <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fSubjectSem} onChange={(e) => setFSubjectSem(e.target.value)}>
+                                                <select style={{ height: '42px', width: '130px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000', padding: '0 10px' }} value={fSubjectSem} onChange={(e) => setFSubjectSem(e.target.value)}>
                                                     <option value="">All Semesters</option>
                                                     {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Sem {s}</option>)}
                                                 </select>
                                             </>
                                         )}
                                         {activeTab === "batches" && (
-                                            <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fBatchCourse} onChange={(e) => setFBatchCourse(e.target.value)}>
+                                            <select style={{ height: '42px', width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000', padding: '0 10px' }} value={fBatchCourse} onChange={(e) => setFBatchCourse(e.target.value)}>
                                                 <option value="">All Courses</option>
                                                 {allCourses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                             </select>
                                         )}
                                         {activeTab === "users" && (
-                                            <select style={{ width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000' }} value={fUserRole} onChange={(e) => setFUserRole(e.target.value)}>
+                                            <select style={{ height: '42px', width: '140px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-card)', borderRadius: '10px', fontSize: '0.8rem', color: '#000', padding: '0 10px' }} value={fUserRole} onChange={(e) => setFUserRole(e.target.value)}>
                                                 <option value="">All Roles</option>
                                                 <option value="student">Student</option>
                                                 <option value="faculty">Faculty</option>
@@ -1023,23 +1038,23 @@ const AdminDashboard = () => {
                                             </select>
                                         )}
                                         <button onClick={() => {
-                                            setFStudentCourse(""); setFStudentBatch(""); setFFacultyDept(""); setFSubjectSem(""); setFSubjectFaculty(""); setFUserRole(""); setFBatchCourse("");
-                                        }} style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '0 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>Reset</button>
-                                    </div>
+                                            setFStudentCourse(""); setFStudentBatch(""); setFFacultyDept(""); setFSubjectSem(""); setFSubjectFaculty(""); setFSubjectCourse(""); setFUserRole(""); setFBatchCourse("");
+                                        }} style={{ height: '42px', background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '0 15px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>Reset</button>
 
-                                    <button className="btn-add" style={{ borderRadius: '10px', padding: '0.6rem 1.25rem', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 'fit-content' }} onClick={() => {
-                                        const type = activeTab === "students" ? "student" : activeTab === "faculty" ? "faculty" : activeTab === "subjects" ? "subject" : activeTab === "courses" ? "course" : activeTab === "batches" ? "batch" : "user";
-                                        openCrudModal("add", type);
-                                    }}>
-                                        <span style={{ fontSize: '1.1rem' }}>+</span>
-                                        <span>New {activeTab.slice(0, -1)}</span>
-                                    </button>
+                                        <button className="btn-add" style={{ height: '42px', borderRadius: '12px', padding: '0 1.5rem', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 'fit-content' }} onClick={() => {
+                                            const type = activeTab === "students" ? "student" : activeTab === "faculty" ? "faculty" : activeTab === "subjects" ? "subject" : activeTab === "courses" ? "course" : activeTab === "batches" ? "batch" : "user";
+                                            openCrudModal("add", type);
+                                        }}>
+                                            <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>+</span>
+                                            <span>New {activeTab.slice(0, -1)}</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div className="p-table-wrapper" style={{ padding: '0 1rem' }}>
                                 <table className="p-table" style={{ borderCollapse: 'separate', borderSpacing: '0 8px' }}>
                                     <thead style={{ background: 'transparent' }}>
-                                        {activeTab === "students" && <tr><th style={{ paddingLeft: '1.5rem' }}>Name</th><th>Email</th><th>Enrollment</th><th>Course</th><th>Batch</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
+                                        {activeTab === "students" && <tr><th style={{ paddingLeft: '1.5rem' }}>Name</th><th>Email</th><th>Enrollment</th><th>Course</th><th>Batch</th><th>Sem</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
                                         {activeTab === "faculty" && <tr><th style={{ paddingLeft: '1.5rem' }}>Name</th><th>Email</th><th>Department</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
                                         {activeTab === "subjects" && <tr><th style={{ paddingLeft: '1.5rem' }}>Subject</th><th>Code</th><th>Sem</th><th>Faculty</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
                                         {activeTab === "courses" && <tr><th style={{ paddingLeft: '1.5rem' }}>Name</th><th>Code</th><th>Created At</th><th style={{ textAlign: 'center' }}>Actions</th></tr>}
@@ -1053,6 +1068,7 @@ const AdminDashboard = () => {
                                                 <td style={{ opacity: 0.7 }}>{s.email}</td>
                                                 <td><span style={{ background: 'rgba(0,0,0,0.1)', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem' }}>{s.enrollment_number}</span></td>
                                                 <td>{s.course}</td><td>{s.batch}</td>
+                                                <td>{s.current_semester}</td>
                                                 <td className="action-buttons" style={{ display: 'flex', gap: '8px', justifyContent: 'center', border: 'none' }}>
                                                     <button className="btn-edit" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => openCrudModal("edit", "student", s)}>Edit</button>
                                                     <button className="btn-delete" style={{ background: 'rgba(244,63,94,0.1)', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)', padding: '5px 10px', borderRadius: '8px', fontSize: '0.85rem' }} onClick={() => setDeleteConfirm({ open: true, id: s.id, type: "student" })}>Delete</button>

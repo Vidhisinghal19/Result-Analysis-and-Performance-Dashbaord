@@ -114,6 +114,4 @@ CREATE TABLE marks (
     FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
 );
 
--- Seed Data: Only default admin user. All courses and batches must be created via Admin Dashboard.
-INSERT INTO users (name, email, password, role) VALUES 
-('System Admin', 'admin@example.com', 'admin123', 'admin');
+-- Seed Data: Removed to allow backend/run.py to create admin with hashed password

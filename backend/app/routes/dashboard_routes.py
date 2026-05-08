@@ -156,11 +156,14 @@ def users_list():
 
 @dashboard_bp.route('/subjects-list', methods=['GET'])
 def subjects_list():
+    from app.models.batch import Batch
+    from app.models.course import Course
     page = int(request.args.get('page', 1))
     search = request.args.get('search', '').strip()
     faculty_id = request.args.get('faculty_id')
     semester_id = request.args.get('semester_id')
     batch_id = request.args.get('batch_id')
+    course_id = request.args.get('course_id')
 
     query = db.session.query(
         Subject.id, Subject.name, Subject.code,
@@ -169,12 +172,15 @@ def subjects_list():
         User.name.label('f_name')
     ).outerjoin(Faculty, Subject.faculty_id == Faculty.id)\
      .outerjoin(User, Faculty.user_id == User.id)\
-     .outerjoin(Semester, Subject.semester_id == Semester.id)
+     .outerjoin(Semester, Subject.semester_id == Semester.id)\
+     .outerjoin(Batch, Semester.batch_id == Batch.id)\
+     .outerjoin(Course, Batch.course_id == Course.id)
     
     if search: query = query.filter(db.or_(Subject.name.ilike(f'%{search}%'), Subject.code.ilike(f'%{search}%')))
     if faculty_id: query = query.filter(Subject.faculty_id == faculty_id)
     if semester_id: query = query.filter(Subject.semester_id == semester_id)
     if batch_id: query = query.filter(Semester.batch_id == batch_id)
+    if course_id: query = query.filter(Batch.course_id == course_id)
 
     total = query.count()
     rows = query.offset((page - 1) * 10).limit(10).all()

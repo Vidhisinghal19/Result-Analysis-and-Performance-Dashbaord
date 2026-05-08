@@ -64,6 +64,7 @@ def upload_users():
                 if role == "student":
                     enrollment = norm.get("enrollment_number", "")
                     batch_name = norm.get("batch_name") or norm.get("batch", "")
+                    sem_num = norm.get("semester_number") or norm.get("semester") or norm.get("current_semester")
 
                     # Find batch (fuzzy match)
                     batch_id = None
@@ -75,18 +76,38 @@ def upload_users():
                         else:
                             batch_warnings.append(f"Batch '{batch_name}' not found for {email}")
 
+                    # Automatically find semester within that batch
+                    sem_id = None
+                    if batch_id and sem_num:
+                        try:
+                            # Handle cases like "Sem 1" or just "1"
+                            clean_sem_val = str(sem_num).lower().replace('sem', '').replace('semester', '').strip()
+                            if clean_sem_val.isdigit():
+                                matched_sem = Semester.query.filter_by(batch_id=batch_id, number=int(clean_sem_val)).first()
+                                if matched_sem:
+                                    sem_id = matched_sem.id
+                        except Exception:
+                            pass
+
                     # Always create/update student record
                     student = Student.query.filter_by(user_id=user.id).first()
                     if not student:
                         if not enrollment:
                             enrollment = f"ENR-{user.id}"
-                        db.session.add(Student(user_id=user.id, enrollment_number=enrollment, batch_id=batch_id))
+                        db.session.add(Student(
+                            user_id=user.id, 
+                            enrollment_number=enrollment, 
+                            batch_id=batch_id,
+                            current_semester_id=sem_id
+                        ))
                         created += 1
                     else:
                         if enrollment:
                             student.enrollment_number = enrollment
                         if batch_id:
                             student.batch_id = batch_id
+                        if sem_id:
+                            student.current_semester_id = sem_id
                         updated += 1
 
                 elif role == "faculty":

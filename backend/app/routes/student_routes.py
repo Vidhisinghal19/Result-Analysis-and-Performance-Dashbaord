@@ -27,9 +27,8 @@ def get_dashboard_overview(user_id):
 
         from app.models.exam import Exam
 
-        total_subjects = db.session.query(func.count(Subject.id))\
-            .join(Semester, Subject.semester_id == Semester.id)\
-            .filter(Semester.batch_id == student.batch_id).scalar() or 0
+        # Only count subjects for the student's CURRENT semester
+        total_subjects = Subject.query.filter_by(semester_id=student.current_semester_id).count() if student.current_semester_id else 0
 
         student_marks = db.session.query(
             func.sum(Marks.marks_obtained).label('obtained'),
@@ -92,7 +91,7 @@ def get_student_results(user_id):
             func.sum(Exam.max_marks).label('max_marks')
         ).join(Marks, Marks.subject_id == Subject.id)\
          .join(Exam, Marks.exam_id == Exam.id)\
-         .filter(Marks.student_id == student.id)\
+         .filter(Marks.student_id == student.id, Subject.semester_id == student.current_semester_id)\
          .group_by(Subject.id).all()
 
         formatted_results = []
@@ -123,14 +122,13 @@ def get_student_hierarchy(user_id):
         if not batch: return jsonify({"error": "Batch not found"}), 404
         course = Course.query.get(batch.course_id)
         
-        # Filter semesters based on current_semester_id
+        # Only allow access to the CURRENT semester
         current_semester = Semester.query.get(student.current_semester_id) if student.current_semester_id else None
         
-        semesters_query = Semester.query.filter_by(batch_id=batch.id).order_by(Semester.number)
-        if current_semester:
-            semesters_query = semesters_query.filter(Semester.number <= current_semester.number)
-        
-        semesters = semesters_query.all()
+        if not current_semester:
+            return jsonify({"error": "Current semester not set for student"}), 400
+            
+        semesters = [current_semester]
         
         hierarchy = {
             "course": course.name,
@@ -159,6 +157,11 @@ def get_subject_performance(user_id, subject_id):
         student = Student.query.filter_by(user_id=user_id).first()
         if not student:
             return jsonify({"error": "Student not found"}), 404
+
+        # Validate that the subject belongs to the student's current semester
+        subject = Subject.query.get(subject_id)
+        if not subject or subject.semester_id != student.current_semester_id:
+            return jsonify({"error": "Access denied. Subject does not belong to your current semester."}), 403
 
         marks_list = db.session.query(
             Exam.name.label('exam_name'),

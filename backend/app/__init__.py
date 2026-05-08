@@ -1,13 +1,17 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_bcrypt import Bcrypt
 from config import Config
 
 db = SQLAlchemy()
+bcrypt = Bcrypt()
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    bcrypt.init_app(app)
     
     # Configure CORS with wildcard and explicit settings
     CORS(app, 
