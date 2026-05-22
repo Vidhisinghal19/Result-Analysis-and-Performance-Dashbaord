@@ -47,7 +47,7 @@ def get_my_subjects(user_id):
          .join(Course, Batch.course_id == Course.id)\
          .outerjoin(Student, Student.batch_id == Batch.id)\
          .filter(Subject.faculty_id == faculty.id)\
-         .group_by(Subject.id, Course.id, Course.name, Batch.id, Batch.name, Semester.id, Semester.name)
+         .group_by(Subject.id, Subject.name, Subject.code, Course.id, Course.name, Batch.id, Batch.name, Semester.id, Semester.name)
         
         subjects = query.all()
         result = []
@@ -142,7 +142,7 @@ def create_exam():
             name=data['name'],
             type=data['type'],
             max_marks=data['max_marks'],
-            exam_date=datetime.strptime(data['exam_date'], '%Y-%m-%d') if data.get('exam_date') else datetime.utcnow().date()
+            exam_date=datetime.strptime(data['exam_date'], '%Y-%m-%d').date() if data.get('exam_date') and str(data['exam_date']).strip() else datetime.utcnow().date()
         )
         db.session.add(new_exam)
         db.session.commit()
