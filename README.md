@@ -4,50 +4,41 @@ A **Premium Full-Stack Intelligent Result Analysis System** designed for educati
 
 ---
 
-## 🌟 Modernized Institutional Modules
+## 🚀 Project Overview
+This project is an institutional command center that bridges the gap between administrators, faculty members, and students. By automating data digestion via bulk CSV imports and displaying performance metrics through beautiful, interactive Recharts visualizations, it allows faculty to provide active mentorship and students to track their academic trajectory transparently.
 
-### 🏢 Admin Command Center (Redesigned)
-*   **Command Center Overview**: High-level system statistics and quick-access cards for streamlined institutional management.
-*   **Isolated Analytics Suite**: Dedicated tab for Role Distribution, Course Enrollment, and Faculty engagement metrics.
-*   **Smart Data Repository**: Modern card-row table layout with professional action controls (Edit/Delete).
-*   **Dynamic Data Drilling**: Advanced filtering system across all repositories (Filter students by batch/course, faculty by department, subjects by faculty/semester).
-*   **Bulk Orchestration**: Industrial-grade CSV upload system for Students, Faculty, and Course catalogues.
+---
+
+## 🔑 Key Features by User Role
+
+### 🏢 Admin Command Center
+*   **System Analytics Suite**: Real-time graphs for student role distribution, course enrollment, and faculty engagement.
+*   **Smart Data Repositories**: Fluid card-row tables with full search, sorting, and filtering capabilities.
+*   **Bulk CSV Orchestration**: High-throughput file upload system for registering students, faculty, and entire course catalogues.
+*   **Advanced Filtering Engine**: Precise server-side query filters (filter students by batch/course, faculty by department, subjects by semester).
 
 ### 🧠 Faculty Intelligent Workspace
-*   **Performance Monitoring Loop**: Personalized dashboard showing teaching portfolios and real-time student enrollment.
-*   **Mentorship Feedback Suite**: Ability to provide qualitative remarks and performance ratings directly to students.
-*   **Smart Grade Management**: Bulk assessment creation and CSV marks upload with automatic student verification.
-*   **Analytical Panels**: Instant Top-5 Performers vs. Critical Intervention lists, Subject Progression charts, and Pass/Fail ratios.
+*   **Performance Monitoring Loop**: Personal portal showcasing teaching portfolios and enrollment lists.
+*   **Smart Grade Management**: Interface to create assessments and upload student marks in bulk via CSV.
+*   **Mentorship & Feedback**: Qualitative remarks and rating system to provide performance-improving notes to students.
+*   **Analytical Panels**: Automatic calculation of top performers, student intervention alerts, pass/fail ratios, and progression curves.
 
 ### 📉 Student Performance Portal
-*   **Mentorship Visibility**: Direct access to faculty feedback and performance ratings for academic growth.
-*   **Interactive Trajectories**: Visual progression line charts showing student growth from CIEs to Final Exams.
-*   **Academic Transparency**: 360° view of grades and subject-level performance metrics.
+*   **360° Academic Transparency**: Clear visibility into grades, ratings, and assessment logs.
+*   **Interactive Trajectories**: Visual progression line charts showing student growth from internal assessments (CIEs) to final exams.
+*   **Mentorship Feedback**: Real-time notification of faculty remarks and academic guidance.
 
 ---
 
-## 🧠 Tech Stack & Architecture
+## 🛠️ Tech Stack & Architecture
 
-- **Frontend**: `React 18` + `Recharts` + `Axios`
-- **Backend**: `Flask` (Python 3.10) + `Flask-SQLAlchemy` (ORM)
-- **Database**: `MySQL 8.0` with Optimized Relational Schema
-- **Containers**: `Docker` & `Docker Compose`
-- **Aesthetics**: Custom-built **Glassmorphism UI** with a focus on dark/light harmony and high readability.
-
----
-
-## 🚀 Quick Start (Docker Development)
-
-Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop) installed.
-
-### 1. Build and Launch
-```bash
-docker-compose up --build
-```
-
-### 2. Access the Ecosystem
-- **Dashboard Interface**: [http://localhost:3000](http://localhost:3000)
-- **Backend API**: [http://localhost:5001](http://localhost:5001)
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | `React 19` • `React Router 7` • `Recharts` • `Axios` • `Vanilla CSS` |
+| **Backend** | `Flask (Python 3.10)` • `Flask-SQLAlchemy` (ORM) • `Flask-Bcrypt` • `Flask-CORS` |
+| **Database** | `MySQL 8.0` with Optimized Relational Schema |
+| **DevOps** | `Docker` • `Docker Compose` |
+| **Design** | **Glassmorphism UI** (harmonious dark/light modes, premium micro-animations) |
 
 ---
 
@@ -55,28 +46,102 @@ docker-compose up --build
 
 ```bash
 📦 result-analysis-system
- ┣ 📂 backend           # Flask API, SQL Models, and Business Logic
- ┣ 📂 frontend          # React App including Dashboards & Recharts logic
- ┣ 📂 database          # Schema initialization (init.sql)
- ┗ 📜 docker-compose.yml # Container Orchestration
+ ┣ 📂 backend
+ ┃ ┣ 📂 app
+ ┃ ┃ ┣ 📂 models           # SQLAlchemy Relational Models (MySQL Schema)
+ ┃ ┃ ┃ ┣ 📜 batch.py
+ ┃ ┃ ┃ ┣ 📜 course.py
+ ┃ ┃ ┃ ┣ 📜 exam.py
+ ┃ ┃ ┃ ┣ 📜 faculty.py
+ ┃ ┃ ┃ ┣ 📜 marks.py
+ ┃ ┃ ┃ ┣ 📜 mentorship.py
+ ┃ ┃ ┃ ┣ 📜 semester.py
+ ┃ ┃ ┃ ┣ 📜 student.py
+ ┃ ┃ ┃ ┣ 📜 subject.py
+ ┃ ┃ ┃ ┗ 📜 user.py         # Unified User Model with Bcrypt password hashing
+ ┃ ┃ ┣ 📂 routes           # Flask Blueprints (REST API Endpoints)
+ ┃ ┃ ┃ ┣ 📜 admin_routes.py # Bulk CSV imports, user management, and DB seeding
+ ┃ ┃ ┃ ┣ 📜 auth_routes.py  # User authentication, registration, profile updates
+ ┃ ┃ ┃ ┣ 📜 dashboard_routes.py # Analytical aggregate queries for charts
+ ┃ ┃ ┃ ┣ 📜 faculty_routes.py # Course records, assessments, and mentorship inputs
+ ┃ ┃ ┃ ┣ 📜 marks_routes.py # Subject marks lookup and bulk exam marks entry
+ ┃ ┃ ┃ ┗ 📜 student_routes.py # Student performance history and feedback views
+ ┃ ┃ ┣ 📂 uploads          # Temporary storage for bulk CSV uploads
+ ┃ ┃ ┗ 📜 __init__.py      # App factory, CORS setup, Blueprint registration
+ ┃ ┣ 📜 config.py          # Environment configuration (DB connection details)
+ ┃ ┣ 📜 Dockerfile         # Python environment containerization
+ ┃ ┣ 📜 requirements.txt   # Python package dependencies
+ ┃ ┗ 📜 run.py             # Main entry point; handles DB auto-creation & admin seed
+ ┣ 📂 database
+ ┃ ┗ 📜 init.sql           # Schema definition (foreign keys, unique constraints, indices)
+ ┣ 📂 frontend
+ ┃ ┣ 📂 public             # Static assets & HTML template
+ ┃ ┣ 📂 src
+ ┃ ┃ ┣ 📂 pages            # Core Dashboard components
+ ┃ ┃ ┃ ┣ 📜 AdminDashboard.js
+ ┃ ┃ ┃ ┣ 📜 FacultyDashboard.js
+ ┃ ┃ ┃ ┣ 📜 StudentDashboard.js
+ ┃ ┃ ┃ ┣ 📜 Home.js        # Landing page
+ ┃ ┃ ┃ ┣ 📜 Login.js       # Auth interfaces
+ ┃ ┃ ┃ ┣ 📜 Register.js
+ ┃ ┃ ┃ ┗ 📜 *.css          # Custom Vanilla CSS styling (Glassmorphism layout)
+ ┃ ┃ ┣ 📜 App.js           # React Router 7 setup & role-based protected routes
+ ┃ ┃ ┣ 📜 index.js         # DOM mounting
+ ┃ ┃ ┗ 📜 index.css        # Global CSS rules
+ ┃ ┣ 📜 Dockerfile         # Node.js environment containerization
+ ┃ ┗ 📜 package.json       # Frontend project metadata and dependencies
+ ┗ 📜 docker-compose.yml   # Multi-container orchestrator (backend, frontend, db)
 ```
 
 ---
 
-## 🛡️ Security Infrastructure
-- **Password Orchestration**: Advanced hashing protocol using `Werkzeug` (PBKDF2-SHA256) to eliminate plain-text storage.
-- **Migration Protocol**: Built-in migration suite (`migrate_passwords.py`) to transition legacy credentials to secure hashes.
-- **Credential Recovery**: Automatic backup of original credentials to `backend/instance/original_credentials.csv` during migration.
+## 🛡️ Security & Relational Data Integrity
+
+*   **Cryptographic Password Security**: Uses `Flask-Bcrypt` to ensure all passwords are salted and hashed using the Blowfish cipher before database storage.
+*   **Role-Based Access Control (RBAC)**: All route components on the frontend are wrapped in role-guarded wrappers (`ProtectedRoute`), while backend endpoints validate access tokens and request fields to enforce role isolation.
+*   **Strict Relational Schema**: Enforces transactional consistency in MySQL using `ON DELETE CASCADE` / `ON DELETE SET NULL` constraints.
+*   **Duplication Prevention**: Enforces database-level `UniqueConstraints` on student profiles, assessments, and grades to prevent double-entry and preserve historical integrity.
+*   **Security Best Practices**: Configured with controlled CORS mappings mapping explicit verbs and exposed headers.
 
 ---
 
-## 🛠️ Implementation Highlights
+## 🔌 API Architecture (Key Endpoints)
 
-- **Cryptographic Security**: Enforced salted password hashing across all user roles (Admin, Faculty, Student).
-- **Data Integrity**: Enforced `UniqueConstraints` on assessments and marks to prevent duplication.
-- **Filtering Engine**: Backend-driven pagination and precise filtering for managing large institutional datasets.
-- **Mentorship Integration**: Closed-loop feedback system linking Faculty remarks directly to Student dashboards.
-- **Responsive Tables**: Fluid card-based rows for superior data visibility across all screen sizes.
+| Route | Method | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/login` | `POST` | Public | Authenticate users and return session info |
+| `/register` | `POST` | Public | Register new students/faculty |
+| `/api/admin/profile` | `PUT` | Admin | Update current user credentials |
+| `/upload/users` | `POST` | Admin | Bulk upload CSV file of users |
+| `/upload/subjects` | `POST` | Admin | Bulk upload CSV file of subjects |
+| `/api/admin/batches` | `GET` | Admin | Fetch academic batches list |
+| `/api/faculty/assessments` | `POST` | Faculty | Create new exams/assessments |
+| `/api/faculty/marks` | `POST` | Faculty | Upload CSV grades for assessments |
+| `/api/student/performance` | `GET` | Student | Retrieve overall marks progression & feedback |
+
+---
+
+## 🚀 Quick Start Guide (Docker Development)
+
+Ensure you have [Docker Desktop](https://www.docker.com/products/docker-desktop) installed.
+
+### 1. Launch the Stack
+Run the following command in the project root:
+```bash
+docker-compose up --build
+```
+This automatically compiles the frontend node environment, builds the python backend, sets up the MySQL 8 database service, runs database migrations, and seeds a default administrator.
+
+### 2. Port Allocation
+Once running, you can access the application components:
+*   **Frontend Dashboard**: [http://localhost:3000](http://localhost:3000)
+*   **Backend REST API**: [http://localhost:5001](http://localhost:5001)
+*   **MySQL Server (Host Port)**: `localhost:3307` (Credentials: `root` / `root`)
+
+### 3. Default Credentials
+Use these to log into the Admin Command Center:
+*   **Email**: `admin@example.com`
+*   **Password**: `password`
 
 ---
 

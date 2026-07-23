@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.user import User

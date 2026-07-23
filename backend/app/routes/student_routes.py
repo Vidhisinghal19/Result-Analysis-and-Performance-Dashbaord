@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import Blueprint, jsonify, request
 from app import db
 from app.models.student import Student
@@ -5,6 +6,7 @@ from app.models.marks import Marks
 from app.models.subject import Subject
 from app.models.semester import Semester
 from app.models.batch import Batch
+# pyrefly: ignore [missing-import]
 from sqlalchemy import func
 
 student_bp = Blueprint('student', __name__, url_prefix='/api/student')

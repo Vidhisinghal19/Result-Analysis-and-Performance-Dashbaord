@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import Blueprint, request, jsonify
 import csv
 import os
@@ -22,6 +23,7 @@ def upload_users():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
+    # pyrefly: ignore [no-matching-overload]
     filepath = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(filepath)
 

@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from app import db
@@ -86,6 +87,7 @@ def get_subject_students(subject_id):
 
         if subject.type == 'elective':
             # For electives: only students explicitly enrolled in this subject
+            # pyrefly: ignore [missing-import]
             from sqlalchemy import text
             student_ids = db.session.execute(
                 text("SELECT student_id FROM student_subjects WHERE subject_id = :sid"),
